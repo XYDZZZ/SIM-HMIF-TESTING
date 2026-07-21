@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  /* ---- Warna: "systems console" -- ink navy + amber signal ---- */
+  --color-ink-950: #0a0e14;
+  --color-ink-900: #0f141c;
+  --color-ink-800: #161d28;
+  --color-ink-700: #202939;
+  --color-ink-600: #2c3849;
+  --color-ink-400: #5a6b80;
+  --color-paper-100: #e9edf2;
+  --color-paper-300: #b9c4d0;
+
+  --color-signal-500: #e8a33d;
+  --color-signal-400: #f0b85f;
+  --color-signal-900: #3a2a10;
+
+  --color-ok-500: #4fd1ae;
+  --color-danger-500: #ef6461;
+
+  /* ---- Tipografi ---- */
+  --font-display: var(--font-plex-mono), ui-monospace, monospace;
+  --font-body: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-ink-950);
+  color: var(--color-paper-100);
+  font-family: var(--font-body);
+}
+
+/* Latar dot-grid halus -- signature texture, dipakai di shell auth & panel utama */
+.bg-dot-grid {
+  background-image: radial-gradient(var(--color-ink-600) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -11px -11px;
+}
+
+/* Garis pemisah tipis bergaya "readout" sistem */
+.rule-signal {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-signal-500) 15%,
+    var(--color-signal-500) 85%,
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
