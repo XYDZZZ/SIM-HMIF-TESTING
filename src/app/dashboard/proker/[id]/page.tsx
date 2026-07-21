@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { detailProker } from "@/lib/actions/proker";
+import { detailProker, daftarPanitia, daftarAnggotaUntukPanitia } from "@/lib/actions/proker";
 import { SelectorStatusProker } from "@/components/proker/SelectorStatusProker";
 import { FormTambahDokumen } from "@/components/proker/FormTambahDokumen";
+import { FormTambahPanitia } from "@/components/proker/FormTambahPanitia";
+import { TombolHapusPanitia } from "@/components/proker/TombolHapusPanitia";
 
 export default async function HalamanDetailProker({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,6 +13,11 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
 
   const divisiObj = proker.divisi as unknown as { nama_divisi: string } | null;
   const periodeObj = proker.periode as unknown as { status_aktif: boolean } | null;
+
+  const [panitia, calonPanitia] = await Promise.all([
+    daftarPanitia(id),
+    daftarAnggotaUntukPanitia(proker.id_periode),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -38,6 +45,45 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
           {proker.tanggal_selesai && <span>Selesai: {proker.tanggal_selesai}</span>}
         </div>
       </div>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-[12px] uppercase tracking-[0.14em] text-paper-300">
+            Struktur Kepanitiaan ({panitia.length})
+          </h2>
+        </div>
+
+        <div className="space-y-2">
+          {panitia.map((p) => {
+            const u = p.users as unknown as { nama_lengkap: string; nim: string };
+            return (
+              <div
+                key={p.id_panitia}
+                className="flex items-center justify-between rounded-lg border border-ink-700 bg-ink-900/60 px-4 py-3 text-sm"
+              >
+                <div>
+                  <span className="text-paper-100">{u?.nama_lengkap}</span>
+                  <span className="ml-2 text-paper-300">{p.peran}</span>
+                </div>
+                {periodeObj?.status_aktif && <TombolHapusPanitia id_panitia={p.id_panitia} id_proker={id} />}
+              </div>
+            );
+          })}
+          {panitia.length === 0 && <p className="text-sm text-paper-300">Belum ada panitia ditetapkan.</p>}
+        </div>
+
+        {periodeObj?.status_aktif && (
+          <div className="mt-3">
+            <FormTambahPanitia
+              id_proker={id}
+              daftarAnggota={calonPanitia.map((a) => {
+                const u = a.users as unknown as { nama_lengkap: string; nim: string };
+                return { id_user: a.id_user, nama_lengkap: u?.nama_lengkap, nim: u?.nim };
+              })}
+            />
+          </div>
+        )}
+      </section>
 
       <section>
         <div className="mb-3 flex items-center justify-between">

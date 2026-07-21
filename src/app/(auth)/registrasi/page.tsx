@@ -5,6 +5,7 @@ import Link from "next/link";
 import { registrasiAnggota, type HasilAksi } from "@/lib/actions/auth";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Field } from "@/components/ui/Field";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
@@ -34,7 +35,7 @@ export default function HalamanRegistrasi() {
           required
         />
         <Field label="Nomor WhatsApp" name="nomor_whatsapp" placeholder="08xxxxxxxxxx" required />
-        <Field label="Password" name="password" type="password" required autoComplete="new-password" />
+        <PasswordField label="Password" name="password" required autoComplete="new-password" />
 
         {state.pesan && <Alert sukses={state.sukses} pesan={state.pesan} />}
 

@@ -131,3 +131,55 @@ export async function tambahDokumenProker(formData: FormData): Promise<HasilAksi
   if (error) return { sukses: false, pesan: "Gagal menambahkan dokumen: " + error.message };
   return { sukses: true, pesan: "Dokumen berhasil ditambahkan." };
 }
+
+// ------------------------------------------------------------
+// STRUKTUR KEPANITIAAN
+// ------------------------------------------------------------
+
+export async function daftarPanitia(id_proker: string) {
+  const supabase = createServerSupabaseClient();
+  const { data } = await supabase
+    .from("panitia_proker")
+    .select("id_panitia, peran, users ( nama_lengkap, nim )")
+    .eq("id_proker", id_proker)
+    .order("ditambahkan_pada", { ascending: true });
+  return data ?? [];
+}
+
+/** Anggota periode aktif -- untuk dropdown pemilihan panitia. */
+export async function daftarAnggotaUntukPanitia(id_periode: string) {
+  const supabase = createServerSupabaseClient();
+  const { data } = await supabase
+    .from("anggota_periode")
+    .select("id_user, users ( nama_lengkap, nim )")
+    .eq("id_periode", id_periode);
+  return data ?? [];
+}
+
+export async function tambahPanitia(formData: FormData): Promise<HasilAksi> {
+  const id_proker = formData.get("id_proker") as string;
+  const id_user = formData.get("id_user") as string;
+  const peran = formData.get("peran") as string;
+
+  const supabase = createServerSupabaseClient();
+  const { data: proker } = await supabase.from("proker").select("id_divisi").eq("id_proker", id_proker).single();
+  if (!proker) return { sukses: false, pesan: "Proker tidak ditemukan." };
+
+  await pastikanBolehKelolaProker(proker.id_divisi);
+
+  const { error } = await supabase.from("panitia_proker").insert({ id_proker, id_user, peran });
+  if (error) return { sukses: false, pesan: "Gagal menambahkan panitia: " + error.message };
+  return { sukses: true, pesan: "Panitia berhasil ditambahkan." };
+}
+
+export async function hapusPanitia(id_panitia: string, id_proker: string): Promise<HasilAksi> {
+  const supabase = createServerSupabaseClient();
+  const { data: proker } = await supabase.from("proker").select("id_divisi").eq("id_proker", id_proker).single();
+  if (!proker) return { sukses: false, pesan: "Proker tidak ditemukan." };
+
+  await pastikanBolehKelolaProker(proker.id_divisi);
+
+  const { error } = await supabase.from("panitia_proker").delete().eq("id_panitia", id_panitia);
+  if (error) return { sukses: false, pesan: "Gagal menghapus panitia." };
+  return { sukses: true, pesan: "Panitia berhasil dihapus." };
+}

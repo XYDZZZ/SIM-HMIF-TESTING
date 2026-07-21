@@ -140,9 +140,68 @@ export async function detailAnggotaPeriode(id_anggota_periode: string) {
   return { anggota, total_poin: poin?.total_poin ?? 0 };
 }
 
-// ------------------------------------------------------------
-// MUTASI (tulis data)
-// ------------------------------------------------------------
+/**
+ * Struktur kepengurusan lengkap untuk satu periode, dikelompokkan:
+ * BPH (urut sesuai jabatan) -> per Divisi -> Kadiv lalu Anggota divisi itu.
+ * Dipakai di halaman detail periode supaya seluruh jajaran pengurus
+ * (dari BPH sampai anggota biasa) kelihatan jelas per tahun kepengurusan.
+ */
+export async function strukturKepengurusan(id_periode: string) {
+  const supabase = createServerSupabaseClient();
+
+  const { data: anggota } = await supabase
+    .from("anggota_periode")
+    .select(
+      `id_anggota_periode, id_user,
+       users ( nim, nama_lengkap ),
+       roles ( nama_role ),
+       jabatan ( id_jabatan, nama_jabatan ),
+       divisi ( id_divisi, nama_divisi )`
+    )
+    .eq("id_periode", id_periode);
+
+  const semua = anggota ?? [];
+
+  const urutanJabatan = ["Ketua", "Wakil Ketua", "Sekretaris", "Bendahara"];
+  const bph = semua
+    .filter((a) => (a.roles as unknown as { nama_role: string } | null)?.nama_role === "BPH")
+    .sort((a, b) => {
+      const ja = (a.jabatan as unknown as { nama_jabatan: string } | null)?.nama_jabatan ?? "";
+      const jb = (b.jabatan as unknown as { nama_jabatan: string } | null)?.nama_jabatan ?? "";
+      return urutanJabatan.indexOf(ja) - urutanJabatan.indexOf(jb);
+    });
+
+  const namaDivisiUnik = Array.from(
+    new Set(
+      semua
+        .map((a) => (a.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi)
+        .filter((n): n is string => Boolean(n))
+    )
+  );
+
+  const perDivisi = namaDivisiUnik.map((namaDivisi) => {
+    const anggotaDivisiIni = semua.filter(
+      (a) => (a.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi === namaDivisi
+    );
+    return {
+      nama_divisi: namaDivisi,
+      kadiv: anggotaDivisiIni.filter(
+        (a) => (a.roles as unknown as { nama_role: string } | null)?.nama_role === "Kadiv"
+      ),
+      anggota: anggotaDivisiIni.filter(
+        (a) => (a.roles as unknown as { nama_role: string } | null)?.nama_role === "Anggota"
+      ),
+    };
+  });
+
+  const tanpaDivisi = semua.filter(
+    (a) =>
+      (a.roles as unknown as { nama_role: string } | null)?.nama_role !== "BPH" &&
+      !(a.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi
+  );
+
+  return { bph, perDivisi, tanpaDivisi, totalAnggota: semua.length };
+}
 
 /**
  * "Akhiri Periode & Buka Periode Baru" — khusus Superadmin.

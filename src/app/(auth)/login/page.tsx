@@ -7,6 +7,7 @@ import { loginAnggota, type HasilAksi } from "@/lib/actions/auth";
 import { loginMitra } from "@/lib/actions/mitra-auth";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Field } from "@/components/ui/Field";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
@@ -53,7 +54,7 @@ export default function HalamanLogin() {
       {tab === "anggota" ? (
         <form action={formActionAnggota} className="space-y-4">
           <Field label="NIM" name="nim" required autoFocus />
-          <Field label="Password" name="password" type="password" required autoComplete="current-password" />
+          <PasswordField label="Password" name="password" required autoComplete="current-password" />
           {stateAnggota.pesan && <Alert sukses={stateAnggota.sukses} pesan={stateAnggota.pesan} />}
           <Button type="submit" disabled={pendingAnggota}>
             {pendingAnggota ? "Memproses..." : "Masuk"}
@@ -67,7 +68,7 @@ export default function HalamanLogin() {
       ) : (
         <form action={formActionMitra} className="space-y-4">
           <Field label="Username" name="username" required autoFocus />
-          <Field label="Password" name="password" type="password" required autoComplete="current-password" />
+          <PasswordField label="Password" name="password" required autoComplete="current-password" />
           {stateMitra.pesan && <Alert sukses={stateMitra.sukses} pesan={stateMitra.pesan} />}
           <Button type="submit" disabled={pendingMitra}>
             {pendingMitra ? "Memproses..." : "Masuk sebagai Mitra"}

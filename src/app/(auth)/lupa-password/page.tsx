@@ -6,6 +6,7 @@ import Link from "next/link";
 import { verifikasiLupaPassword, setPasswordBaru } from "@/lib/actions/auth";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Field } from "@/components/ui/Field";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
@@ -62,10 +63,9 @@ export default function HalamanLupaPassword() {
         </form>
       ) : (
         <form action={tanganiLangkah2} className="space-y-4">
-          <Field
+          <PasswordField
             label="Password Baru"
             name="password_baru"
-            type="password"
             required
             autoFocus
             autoComplete="new-password"

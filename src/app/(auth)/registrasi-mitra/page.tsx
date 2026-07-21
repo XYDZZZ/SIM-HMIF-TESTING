@@ -6,6 +6,7 @@ import { registrasiMitra } from "@/lib/actions/mitra-auth";
 import type { HasilAksi } from "@/lib/actions/auth";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Field } from "@/components/ui/Field";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
@@ -27,7 +28,7 @@ export default function HalamanRegistrasiMitra() {
         <Field label="Nama Pemilik" name="nama_pemilik" required />
         <Field label="Nomor WhatsApp" name="kontak_whatsapp" placeholder="08xxxxxxxxxx" required />
         <Field label="Username" name="username" required />
-        <Field label="Password" name="password" type="password" required autoComplete="new-password" />
+        <PasswordField label="Password" name="password" required autoComplete="new-password" />
 
         {state.pesan && <Alert sukses={state.sukses} pesan={state.pesan} />}
 
