@@ -17,12 +17,14 @@ interface Opsi {
 export function FormAssignSatuan({
   id_periode,
   calonAnggota,
+  totalUserTerdaftar,
   roles,
   jabatan,
   divisi,
 }: {
   id_periode: string;
   calonAnggota: Array<{ id_user: string; nim: string; nama_lengkap: string }>;
+  totalUserTerdaftar: number;
   roles: Opsi[];
   jabatan: Opsi[];
   divisi: Opsi[];
@@ -40,7 +42,13 @@ export function FormAssignSatuan({
   );
 
   if (calonAnggota.length === 0) {
-    return <p className="text-sm text-paper-300">Semua anggota terdaftar sudah masuk periode ini.</p>;
+    return (
+      <p className="text-sm text-paper-300">
+        {totalUserTerdaftar === 0
+          ? "Belum ada akun yang mendaftar sama sekali. Minta calon anggota mendaftar dulu lewat halaman Registrasi."
+          : "Semua akun yang terdaftar sudah masuk periode ini."}
+      </p>
+    );
   }
 
   return (

@@ -38,7 +38,7 @@ export async function daftarKasTransaksi(id_periode: string, kategori?: string) 
     .select(
       `id_transaksi, jenis, kategori, nominal, metode_pembayaran, bukti_url, status,
        sumber_transaksi, dibuat_pada, diverifikasi_pada,
-       users ( nama_lengkap ), tagihan_khusus ( nama_tagihan )`
+       users!id_user ( nama_lengkap ), tagihan_khusus ( nama_tagihan )`
     )
     .is("deleted_at", null)
     .order("dibuat_pada", { ascending: false });
@@ -69,7 +69,7 @@ export async function daftarKasPending() {
     .from("kas_transaksi")
     .select(
       `id_transaksi, nominal, metode_pembayaran, bukti_url, dibuat_pada,
-       users ( nama_lengkap, nim ), tagihan_khusus ( nama_tagihan )`
+       users!id_user ( nama_lengkap, nim ), tagihan_khusus ( nama_tagihan )`
     )
     .eq("status", "Pending")
     .is("deleted_at", null)

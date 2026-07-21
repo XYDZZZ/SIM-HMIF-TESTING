@@ -39,7 +39,7 @@ export async function daftarAbsensiKegiatan(id_kegiatan: string) {
   const supabase = createServerSupabaseClient();
   const { data } = await supabase
     .from("absensi")
-    .select("id_absensi, waktu_absen, status_kehadiran, metode_absen, catatan, users ( nim, nama_lengkap )")
+    .select("id_absensi, waktu_absen, status_kehadiran, metode_absen, catatan, users!id_user ( nim, nama_lengkap )")
     .eq("id_kegiatan", id_kegiatan)
     .order("waktu_absen", { ascending: true, nullsFirst: false });
   return data ?? [];
@@ -54,7 +54,7 @@ export async function anggotaBelumAbsen(id_kegiatan: string, id_periode: string)
 
   const { data: anggotaPeriode } = await supabase
     .from("anggota_periode")
-    .select("id_user, users ( nim, nama_lengkap )")
+    .select("id_user, users!id_user ( nim, nama_lengkap )")
     .eq("id_periode", id_periode);
 
   return (anggotaPeriode ?? []).filter((a) => !idSudah.has(a.id_user));

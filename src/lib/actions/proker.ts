@@ -151,7 +151,7 @@ export async function daftarAnggotaUntukPanitia(id_periode: string) {
   const supabase = createServerSupabaseClient();
   const { data } = await supabase
     .from("anggota_periode")
-    .select("id_user, users ( nama_lengkap, nim )")
+    .select("id_user, users!id_user ( nama_lengkap, nim )")
     .eq("id_periode", id_periode);
   return data ?? [];
 }

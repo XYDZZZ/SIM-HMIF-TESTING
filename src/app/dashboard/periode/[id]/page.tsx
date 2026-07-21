@@ -54,9 +54,12 @@ export default async function HalamanDetailPeriode({
     (konteks.is_superadmin ||
       (konteks.nama_role === "BPH" && ["Ketua", "Wakil Ketua"].includes(konteks.nama_jabatan ?? "")));
 
-  const [calonSatuan, massal] = bolehAssign
-    ? await Promise.all([calonAnggotaBelumDiassign(id), anggotaDariPeriodeLain(id)])
-    : [[], { dariPeriode: null, anggota: [] }];
+  const hasilCalon = bolehAssign
+    ? await calonAnggotaBelumDiassign(id)
+    : { calon: [], totalUserTerdaftar: 0 };
+  const massal = bolehAssign
+    ? await anggotaDariPeriodeLain(id)
+    : { dariPeriode: null, anggota: [] };
 
   const opsiRoles = roles.map((r) => ({ id: r.id_role, label: r.nama_role }));
   const opsiJabatan = jabatan.map((j) => ({ id: j.id_jabatan, label: j.nama_jabatan }));
@@ -167,7 +170,8 @@ export default async function HalamanDetailPeriode({
             </h2>
             <FormAssignSatuan
               id_periode={id}
-              calonAnggota={calonSatuan}
+              calonAnggota={hasilCalon.calon}
+              totalUserTerdaftar={hasilCalon.totalUserTerdaftar}
               roles={opsiRoles}
               jabatan={opsiJabatan}
               divisi={opsiDivisi}

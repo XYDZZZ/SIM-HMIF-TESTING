@@ -40,7 +40,7 @@ export async function detailPeriode(id_periode: string) {
     .from("anggota_periode")
     .select(
       `id_anggota_periode, id_user,
-       users ( nim, nama_lengkap ),
+       users!id_user ( nim, nama_lengkap ),
        roles ( nama_role ),
        jabatan ( nama_jabatan ),
        divisi ( nama_divisi )`
@@ -68,7 +68,10 @@ export async function calonAnggotaBelumDiassign(id_periode: string) {
     .is("deleted_at", null)
     .order("nama_lengkap");
 
-  return (semuaUser ?? []).filter((u) => !idSudah.has(u.id_user));
+  const totalUserTerdaftar = semuaUser?.length ?? 0;
+  const calon = (semuaUser ?? []).filter((u) => !idSudah.has(u.id_user));
+
+  return { calon, totalUserTerdaftar };
 }
 
 /** Anggota dari periode LAIN (biasanya periode sebelumnya) untuk keperluan assign massal (carry-forward). */
@@ -94,7 +97,7 @@ export async function anggotaDariPeriodeLain(id_periode_saat_ini: string) {
   const { data: anggota } = await supabase
     .from("anggota_periode")
     .select(
-      `id_user, users ( nim, nama_lengkap ),
+      `id_user, users!id_user ( nim, nama_lengkap ),
        roles ( nama_role ), jabatan ( nama_jabatan ), divisi ( nama_divisi )`
     )
     .eq("id_periode", periodeLain.id_periode);
@@ -121,7 +124,7 @@ export async function detailAnggotaPeriode(id_anggota_periode: string) {
     .from("anggota_periode")
     .select(
       `id_anggota_periode, id_user, id_periode,
-       users ( nim, nama_lengkap, angkatan, tahun_masuk_organisasi, nomor_whatsapp ),
+       users!id_user ( nim, nama_lengkap, angkatan, tahun_masuk_organisasi, nomor_whatsapp ),
        roles ( nama_role ), jabatan ( nama_jabatan ), divisi ( nama_divisi ),
        periode ( nama_periode )`
     )
@@ -153,7 +156,7 @@ export async function strukturKepengurusan(id_periode: string) {
     .from("anggota_periode")
     .select(
       `id_anggota_periode, id_user,
-       users ( nim, nama_lengkap ),
+       users!id_user ( nim, nama_lengkap ),
        roles ( nama_role ),
        jabatan ( id_jabatan, nama_jabatan ),
        divisi ( id_divisi, nama_divisi )`
