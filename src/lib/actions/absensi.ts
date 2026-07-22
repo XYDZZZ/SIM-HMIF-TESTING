@@ -37,12 +37,20 @@ async function pastikanBolehKelolaAbsensi(id_kegiatan: string) {
 
 export async function daftarAbsensiKegiatan(id_kegiatan: string) {
   const supabase = createServerSupabaseClient();
-  const { data } = await supabase
+  const { data: baris } = await supabase
     .from("absensi")
-    .select("id_absensi, waktu_absen, status_kehadiran, metode_absen, catatan, users!id_user ( nim, nama_lengkap )")
+    .select("id_absensi, id_user, waktu_absen, status_kehadiran, metode_absen, catatan")
     .eq("id_kegiatan", id_kegiatan)
     .order("waktu_absen", { ascending: true, nullsFirst: false });
-  return data ?? [];
+
+  const semua = baris ?? [];
+  if (semua.length === 0) return [];
+
+  const idUser = Array.from(new Set(semua.map((b) => b.id_user)));
+  const { data: users } = await supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser);
+  const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
+
+  return semua.map((b) => ({ ...b, users: petaUser.get(b.id_user) ?? null }));
 }
 
 /** Anggota periode aktif yang BELUM tercatat absensinya di kegiatan ini -- untuk dropdown input manual. */
@@ -54,10 +62,17 @@ export async function anggotaBelumAbsen(id_kegiatan: string, id_periode: string)
 
   const { data: anggotaPeriode } = await supabase
     .from("anggota_periode")
-    .select("id_user, users!id_user ( nim, nama_lengkap )")
+    .select("id_user")
     .eq("id_periode", id_periode);
 
-  return (anggotaPeriode ?? []).filter((a) => !idSudah.has(a.id_user));
+  const kandidat = (anggotaPeriode ?? []).filter((a) => !idSudah.has(a.id_user));
+  if (kandidat.length === 0) return [];
+
+  const idUser = Array.from(new Set(kandidat.map((k) => k.id_user)));
+  const { data: users } = await supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser);
+  const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
+
+  return kandidat.map((k) => ({ id_user: k.id_user, users: petaUser.get(k.id_user) ?? null }));
 }
 
 // ------------------------------------------------------------

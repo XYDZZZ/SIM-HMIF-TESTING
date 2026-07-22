@@ -36,19 +36,7 @@ export async function detailPeriode(id_periode: string) {
     .eq("id_periode", id_periode)
     .single();
 
-  const { data: anggota } = await supabase
-    .from("anggota_periode")
-    .select(
-      `id_anggota_periode, id_user,
-       users!id_user ( nim, nama_lengkap ),
-       roles ( nama_role ),
-       jabatan ( nama_jabatan ),
-       divisi ( nama_divisi )`
-    )
-    .eq("id_periode", id_periode)
-    .order("ditambahkan_pada", { ascending: true });
-
-  return { periode, anggota: anggota ?? [] };
+  return { periode };
 }
 
 /** Anggota terdaftar (users) yang BELUM di-assign ke periode tertentu — buat form assign satuan. */
@@ -94,15 +82,44 @@ export async function anggotaDariPeriodeLain(id_periode_saat_ini: string) {
 
   if (!periodeLain) return { dariPeriode: null, anggota: [] };
 
-  const { data: anggota } = await supabase
+  const { data: barisMentah } = await supabase
     .from("anggota_periode")
-    .select(
-      `id_user, users!id_user ( nim, nama_lengkap ),
-       roles ( nama_role ), jabatan ( nama_jabatan ), divisi ( nama_divisi )`
-    )
+    .select("id_user, id_role, id_jabatan, id_divisi")
     .eq("id_periode", periodeLain.id_periode);
 
-  const belumDiassign = (anggota ?? []).filter((a) => !idSudah.has(a.id_user));
+  const kandidat = (barisMentah ?? []).filter((a) => !idSudah.has(a.id_user));
+  if (kandidat.length === 0) return { dariPeriode: periodeLain, anggota: [] };
+
+  const idUser = Array.from(new Set(kandidat.map((k) => k.id_user)));
+  const idRole = Array.from(new Set(kandidat.map((k) => k.id_role).filter(Boolean)));
+  const idJabatan = Array.from(new Set(kandidat.map((k) => k.id_jabatan).filter(Boolean)));
+  const idDivisi = Array.from(new Set(kandidat.map((k) => k.id_divisi).filter(Boolean)));
+
+  const [{ data: users }, { data: roles }, { data: jabatanList }, { data: divisiList }] = await Promise.all([
+    supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser),
+    idRole.length > 0
+      ? supabase.from("roles").select("id_role, nama_role").in("id_role", idRole)
+      : Promise.resolve({ data: [] as { id_role: string; nama_role: string }[] }),
+    idJabatan.length > 0
+      ? supabase.from("jabatan").select("id_jabatan, nama_jabatan").in("id_jabatan", idJabatan)
+      : Promise.resolve({ data: [] as { id_jabatan: string; nama_jabatan: string }[] }),
+    idDivisi.length > 0
+      ? supabase.from("divisi").select("id_divisi, nama_divisi").in("id_divisi", idDivisi)
+      : Promise.resolve({ data: [] as { id_divisi: string; nama_divisi: string }[] }),
+  ]);
+
+  const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
+  const petaRole = new Map((roles ?? []).map((r) => [r.id_role, r.nama_role]));
+  const petaJabatan = new Map((jabatanList ?? []).map((j) => [j.id_jabatan, j.nama_jabatan]));
+  const petaDivisi = new Map((divisiList ?? []).map((d) => [d.id_divisi, d.nama_divisi]));
+
+  const belumDiassign = kandidat.map((k) => ({
+    id_user: k.id_user,
+    users: petaUser.get(k.id_user) ?? null,
+    roles: k.id_role ? { nama_role: petaRole.get(k.id_role) ?? "" } : null,
+    jabatan: k.id_jabatan ? { nama_jabatan: petaJabatan.get(k.id_jabatan) ?? "" } : null,
+    divisi: k.id_divisi ? { nama_divisi: petaDivisi.get(k.id_divisi) ?? "" } : null,
+  }));
 
   return { dariPeriode: periodeLain, anggota: belumDiassign };
 }
@@ -120,18 +137,43 @@ export async function daftarRoleJabatanDivisi() {
 export async function detailAnggotaPeriode(id_anggota_periode: string) {
   const supabase = createServerSupabaseClient();
 
-  const { data: anggota } = await supabase
+  const { data: baris } = await supabase
     .from("anggota_periode")
-    .select(
-      `id_anggota_periode, id_user, id_periode,
-       users!id_user ( nim, nama_lengkap, angkatan, tahun_masuk_organisasi, nomor_whatsapp ),
-       roles ( nama_role ), jabatan ( nama_jabatan ), divisi ( nama_divisi ),
-       periode ( nama_periode )`
-    )
+    .select("id_anggota_periode, id_user, id_periode, id_role, id_jabatan, id_divisi")
     .eq("id_anggota_periode", id_anggota_periode)
     .single();
 
-  if (!anggota) return null;
+  if (!baris) return null;
+
+  const [{ data: user }, { data: periode }, { data: role }, { data: jabatanData }, { data: divisiData }] =
+    await Promise.all([
+      supabase
+        .from("users")
+        .select("nim, nama_lengkap, angkatan, tahun_masuk_organisasi, nomor_whatsapp")
+        .eq("id_user", baris.id_user)
+        .single(),
+      supabase.from("periode").select("nama_periode").eq("id_periode", baris.id_periode).single(),
+      baris.id_role
+        ? supabase.from("roles").select("nama_role").eq("id_role", baris.id_role).maybeSingle()
+        : Promise.resolve({ data: null }),
+      baris.id_jabatan
+        ? supabase.from("jabatan").select("nama_jabatan").eq("id_jabatan", baris.id_jabatan).maybeSingle()
+        : Promise.resolve({ data: null }),
+      baris.id_divisi
+        ? supabase.from("divisi").select("nama_divisi").eq("id_divisi", baris.id_divisi).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+
+  const anggota = {
+    id_anggota_periode: baris.id_anggota_periode,
+    id_user: baris.id_user,
+    id_periode: baris.id_periode,
+    users: user,
+    roles: role,
+    jabatan: jabatanData,
+    divisi: divisiData,
+    periode,
+  };
 
   const { data: poin } = await supabase
     .from("v_poin_keaktifan")
@@ -152,56 +194,71 @@ export async function detailAnggotaPeriode(id_anggota_periode: string) {
 export async function strukturKepengurusan(id_periode: string) {
   const supabase = createServerSupabaseClient();
 
-  const { data: anggota } = await supabase
+  const { data: baris, error } = await supabase
     .from("anggota_periode")
-    .select(
-      `id_anggota_periode, id_user,
-       users!id_user ( nim, nama_lengkap ),
-       roles ( nama_role ),
-       jabatan ( id_jabatan, nama_jabatan ),
-       divisi ( id_divisi, nama_divisi )`
-    )
+    .select("id_anggota_periode, id_user, id_role, id_jabatan, id_divisi")
     .eq("id_periode", id_periode);
 
-  const semua = anggota ?? [];
+  if (error) {
+    console.error("[strukturKepengurusan] gagal ambil anggota_periode:", error.message);
+    return { bph: [], perDivisi: [], tanpaDivisi: [], totalAnggota: 0 };
+  }
+
+  const semuaBaris = baris ?? [];
+  if (semuaBaris.length === 0) {
+    return { bph: [], perDivisi: [], tanpaDivisi: [], totalAnggota: 0 };
+  }
+
+  const idUser = Array.from(new Set(semuaBaris.map((b) => b.id_user)));
+  const idRole = Array.from(new Set(semuaBaris.map((b) => b.id_role).filter(Boolean)));
+  const idJabatan = Array.from(new Set(semuaBaris.map((b) => b.id_jabatan).filter(Boolean)));
+  const idDivisi = Array.from(new Set(semuaBaris.map((b) => b.id_divisi).filter(Boolean)));
+
+  const [{ data: users }, { data: roles }, { data: jabatanList }, { data: divisiList }] = await Promise.all([
+    supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser),
+    idRole.length > 0
+      ? supabase.from("roles").select("id_role, nama_role").in("id_role", idRole)
+      : Promise.resolve({ data: [] as { id_role: string; nama_role: string }[] }),
+    idJabatan.length > 0
+      ? supabase.from("jabatan").select("id_jabatan, nama_jabatan").in("id_jabatan", idJabatan)
+      : Promise.resolve({ data: [] as { id_jabatan: string; nama_jabatan: string }[] }),
+    idDivisi.length > 0
+      ? supabase.from("divisi").select("id_divisi, nama_divisi").in("id_divisi", idDivisi)
+      : Promise.resolve({ data: [] as { id_divisi: string; nama_divisi: string }[] }),
+  ]);
+
+  const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
+  const petaRole = new Map((roles ?? []).map((r) => [r.id_role, r.nama_role]));
+  const petaJabatan = new Map((jabatanList ?? []).map((j) => [j.id_jabatan, j.nama_jabatan]));
+  const petaDivisi = new Map((divisiList ?? []).map((d) => [d.id_divisi, d.nama_divisi]));
+
+  const semua = semuaBaris.map((b) => ({
+    id_anggota_periode: b.id_anggota_periode,
+    users: petaUser.get(b.id_user) ?? null,
+    nama_role: b.id_role ? petaRole.get(b.id_role) ?? null : null,
+    jabatan: b.id_jabatan ? { nama_jabatan: petaJabatan.get(b.id_jabatan) ?? "" } : null,
+    divisi: b.id_divisi ? { nama_divisi: petaDivisi.get(b.id_divisi) ?? "" } : null,
+  }));
 
   const urutanJabatan = ["Ketua", "Wakil Ketua", "Sekretaris", "Bendahara"];
   const bph = semua
-    .filter((a) => (a.roles as unknown as { nama_role: string } | null)?.nama_role === "BPH")
-    .sort((a, b) => {
-      const ja = (a.jabatan as unknown as { nama_jabatan: string } | null)?.nama_jabatan ?? "";
-      const jb = (b.jabatan as unknown as { nama_jabatan: string } | null)?.nama_jabatan ?? "";
-      return urutanJabatan.indexOf(ja) - urutanJabatan.indexOf(jb);
-    });
+    .filter((a) => a.nama_role === "BPH")
+    .sort((a, b) => urutanJabatan.indexOf(a.jabatan?.nama_jabatan ?? "") - urutanJabatan.indexOf(b.jabatan?.nama_jabatan ?? ""));
 
   const namaDivisiUnik = Array.from(
-    new Set(
-      semua
-        .map((a) => (a.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi)
-        .filter((n): n is string => Boolean(n))
-    )
+    new Set(semua.map((a) => a.divisi?.nama_divisi).filter((n): n is string => Boolean(n)))
   );
 
   const perDivisi = namaDivisiUnik.map((namaDivisi) => {
-    const anggotaDivisiIni = semua.filter(
-      (a) => (a.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi === namaDivisi
-    );
+    const anggotaDivisiIni = semua.filter((a) => a.divisi?.nama_divisi === namaDivisi);
     return {
       nama_divisi: namaDivisi,
-      kadiv: anggotaDivisiIni.filter(
-        (a) => (a.roles as unknown as { nama_role: string } | null)?.nama_role === "Kadiv"
-      ),
-      anggota: anggotaDivisiIni.filter(
-        (a) => (a.roles as unknown as { nama_role: string } | null)?.nama_role === "Anggota"
-      ),
+      kadiv: anggotaDivisiIni.filter((a) => a.nama_role === "Kadiv"),
+      anggota: anggotaDivisiIni.filter((a) => a.nama_role === "Anggota"),
     };
   });
 
-  const tanpaDivisi = semua.filter(
-    (a) =>
-      (a.roles as unknown as { nama_role: string } | null)?.nama_role !== "BPH" &&
-      !(a.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi
-  );
+  const tanpaDivisi = semua.filter((a) => a.nama_role !== "BPH" && !a.divisi?.nama_divisi);
 
   return { bph, perDivisi, tanpaDivisi, totalAnggota: semua.length };
 }

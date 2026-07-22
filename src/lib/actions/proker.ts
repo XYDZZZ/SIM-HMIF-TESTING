@@ -149,11 +149,19 @@ export async function daftarPanitia(id_proker: string) {
 /** Anggota periode aktif -- untuk dropdown pemilihan panitia. */
 export async function daftarAnggotaUntukPanitia(id_periode: string) {
   const supabase = createServerSupabaseClient();
-  const { data } = await supabase
+  const { data: baris } = await supabase
     .from("anggota_periode")
-    .select("id_user, users!id_user ( nama_lengkap, nim )")
+    .select("id_user")
     .eq("id_periode", id_periode);
-  return data ?? [];
+
+  const semua = baris ?? [];
+  if (semua.length === 0) return [];
+
+  const idUser = Array.from(new Set(semua.map((b) => b.id_user)));
+  const { data: users } = await supabase.from("users").select("id_user, nama_lengkap, nim").in("id_user", idUser);
+  const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
+
+  return semua.map((b) => ({ id_user: b.id_user, users: petaUser.get(b.id_user) ?? null }));
 }
 
 export async function tambahPanitia(formData: FormData): Promise<HasilAksi> {

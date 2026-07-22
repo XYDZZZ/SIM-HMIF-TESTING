@@ -26,19 +26,12 @@ export async function daftarTagihanKhusus(id_periode: string) {
 export async function daftarKasTransaksi(id_periode: string, kategori?: string) {
   const supabase = createServerSupabaseClient();
 
-  // Ambil semua kegiatan/tagihan/kegiatan pada periode ini dulu tidak diperlukan --
-  // kas_transaksi tidak punya id_periode langsung, jadi kita filter lewat tagihan_khusus
-  // untuk kategori itu, dan untuk Kas Rutin/Danus kita tampilkan semua (tidak terikat periode
-  // secara ketat karena users bersifat permanen). Supaya tetap relevan, batasi lewat tanggal
-  // pembuatan periode aktif ke depan tidak diberlakukan di versi ini -- ditampilkan semua
-  // transaksi terbaru dan bisa difilter kategori.
-
   let query = supabase
     .from("kas_transaksi")
     .select(
-      `id_transaksi, jenis, kategori, nominal, metode_pembayaran, bukti_url, status,
+      `id_transaksi, id_user, jenis, kategori, nominal, metode_pembayaran, bukti_url, status,
        sumber_transaksi, dibuat_pada, diverifikasi_pada,
-       users!id_user ( nama_lengkap ), tagihan_khusus ( nama_tagihan )`
+       tagihan_khusus ( nama_tagihan )`
     )
     .is("deleted_at", null)
     .order("dibuat_pada", { ascending: false });
@@ -46,7 +39,14 @@ export async function daftarKasTransaksi(id_periode: string, kategori?: string) 
   if (kategori) query = query.eq("kategori", kategori);
 
   const { data } = await query;
-  return data ?? [];
+  const semua = data ?? [];
+  if (semua.length === 0) return [];
+
+  const idUser = Array.from(new Set(semua.map((d) => d.id_user)));
+  const { data: users } = await supabase.from("users").select("id_user, nama_lengkap").in("id_user", idUser);
+  const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
+
+  return semua.map((d) => ({ ...d, users: petaUser.get(d.id_user) ?? null }));
 }
 
 export async function ringkasanKas() {
@@ -68,13 +68,21 @@ export async function daftarKasPending() {
   const { data } = await supabase
     .from("kas_transaksi")
     .select(
-      `id_transaksi, nominal, metode_pembayaran, bukti_url, dibuat_pada,
-       users!id_user ( nama_lengkap, nim ), tagihan_khusus ( nama_tagihan )`
+      `id_transaksi, id_user, nominal, metode_pembayaran, bukti_url, dibuat_pada,
+       tagihan_khusus ( nama_tagihan )`
     )
     .eq("status", "Pending")
     .is("deleted_at", null)
     .order("dibuat_pada", { ascending: true });
-  return data ?? [];
+
+  const semua = data ?? [];
+  if (semua.length === 0) return [];
+
+  const idUser = Array.from(new Set(semua.map((d) => d.id_user)));
+  const { data: users } = await supabase.from("users").select("id_user, nama_lengkap, nim").in("id_user", idUser);
+  const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
+
+  return semua.map((d) => ({ ...d, users: petaUser.get(d.id_user) ?? null }));
 }
 
 // ------------------------------------------------------------

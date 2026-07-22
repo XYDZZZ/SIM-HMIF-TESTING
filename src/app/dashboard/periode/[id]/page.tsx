@@ -146,15 +146,10 @@ export default async function HalamanDetailPeriode({
                 namaPeriodeLama={massal.dariPeriode.nama_periode}
                 calon={massal.anggota.map((a) => ({
                   id_user: a.id_user,
-                  // @ts-expect-error -- hasil join Supabase
                   nim: a.users?.nim,
-                  // @ts-expect-error -- hasil join Supabase
                   nama_lengkap: a.users?.nama_lengkap,
-                  // @ts-expect-error -- hasil join Supabase
                   nama_role_lama: a.roles?.nama_role ?? null,
-                  // @ts-expect-error -- hasil join Supabase
                   nama_jabatan_lama: a.jabatan?.nama_jabatan ?? null,
-                  // @ts-expect-error -- hasil join Supabase
                   nama_divisi_lama: a.divisi?.nama_divisi ?? null,
                 }))}
                 roles={opsiRoles}
