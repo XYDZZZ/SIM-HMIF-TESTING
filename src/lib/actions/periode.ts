@@ -96,7 +96,7 @@ export async function anggotaDariPeriodeLain(id_periode_saat_ini: string) {
   const idDivisi = Array.from(new Set(kandidat.map((k) => k.id_divisi).filter(Boolean)));
 
   const [{ data: users }, { data: roles }, { data: jabatanList }, { data: divisiList }] = await Promise.all([
-    supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser),
+    supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser).is("deleted_at", null),
     idRole.length > 0
       ? supabase.from("roles").select("id_role, nama_role").in("id_role", idRole)
       : Promise.resolve({ data: [] as { id_role: string; nama_role: string }[] }),
@@ -113,13 +113,15 @@ export async function anggotaDariPeriodeLain(id_periode_saat_ini: string) {
   const petaJabatan = new Map((jabatanList ?? []).map((j) => [j.id_jabatan, j.nama_jabatan]));
   const petaDivisi = new Map((divisiList ?? []).map((d) => [d.id_divisi, d.nama_divisi]));
 
-  const belumDiassign = kandidat.map((k) => ({
-    id_user: k.id_user,
-    users: petaUser.get(k.id_user) ?? null,
-    roles: k.id_role ? { nama_role: petaRole.get(k.id_role) ?? "" } : null,
-    jabatan: k.id_jabatan ? { nama_jabatan: petaJabatan.get(k.id_jabatan) ?? "" } : null,
-    divisi: k.id_divisi ? { nama_divisi: petaDivisi.get(k.id_divisi) ?? "" } : null,
-  }));
+  const belumDiassign = kandidat
+    .map((k) => ({
+      id_user: k.id_user,
+      users: petaUser.get(k.id_user) ?? null,
+      roles: k.id_role ? { nama_role: petaRole.get(k.id_role) ?? "" } : null,
+      jabatan: k.id_jabatan ? { nama_jabatan: petaJabatan.get(k.id_jabatan) ?? "" } : null,
+      divisi: k.id_divisi ? { nama_divisi: petaDivisi.get(k.id_divisi) ?? "" } : null,
+    }))
+    .filter((a) => a.users !== null);
 
   return { dariPeriode: periodeLain, anggota: belumDiassign };
 }
@@ -215,7 +217,7 @@ export async function strukturKepengurusan(id_periode: string) {
   const idDivisi = Array.from(new Set(semuaBaris.map((b) => b.id_divisi).filter(Boolean)));
 
   const [{ data: users }, { data: roles }, { data: jabatanList }, { data: divisiList }] = await Promise.all([
-    supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser),
+    supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser).is("deleted_at", null),
     idRole.length > 0
       ? supabase.from("roles").select("id_role, nama_role").in("id_role", idRole)
       : Promise.resolve({ data: [] as { id_role: string; nama_role: string }[] }),
@@ -232,13 +234,17 @@ export async function strukturKepengurusan(id_periode: string) {
   const petaJabatan = new Map((jabatanList ?? []).map((j) => [j.id_jabatan, j.nama_jabatan]));
   const petaDivisi = new Map((divisiList ?? []).map((d) => [d.id_divisi, d.nama_divisi]));
 
-  const semua = semuaBaris.map((b) => ({
-    id_anggota_periode: b.id_anggota_periode,
-    users: petaUser.get(b.id_user) ?? null,
-    nama_role: b.id_role ? petaRole.get(b.id_role) ?? null : null,
-    jabatan: b.id_jabatan ? { nama_jabatan: petaJabatan.get(b.id_jabatan) ?? "" } : null,
-    divisi: b.id_divisi ? { nama_divisi: petaDivisi.get(b.id_divisi) ?? "" } : null,
-  }));
+  const semua = semuaBaris
+    .map((b) => ({
+      id_anggota_periode: b.id_anggota_periode,
+      users: petaUser.get(b.id_user) ?? null,
+      nama_role: b.id_role ? petaRole.get(b.id_role) ?? null : null,
+      jabatan: b.id_jabatan ? { nama_jabatan: petaJabatan.get(b.id_jabatan) ?? "" } : null,
+      divisi: b.id_divisi ? { nama_divisi: petaDivisi.get(b.id_divisi) ?? "" } : null,
+    }))
+    // Akun yang sudah di-nonaktifkan/dihapus (soft delete) tidak lagi ditampilkan
+    // sebagai bagian struktur kepengurusan aktif.
+    .filter((a) => a.users !== null);
 
   const urutanJabatan = ["Ketua", "Wakil Ketua", "Sekretaris", "Bendahara"];
   const bph = semua

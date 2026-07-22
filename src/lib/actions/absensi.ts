@@ -69,10 +69,16 @@ export async function anggotaBelumAbsen(id_kegiatan: string, id_periode: string)
   if (kandidat.length === 0) return [];
 
   const idUser = Array.from(new Set(kandidat.map((k) => k.id_user)));
-  const { data: users } = await supabase.from("users").select("id_user, nim, nama_lengkap").in("id_user", idUser);
+  const { data: users } = await supabase
+    .from("users")
+    .select("id_user, nim, nama_lengkap")
+    .in("id_user", idUser)
+    .is("deleted_at", null);
   const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
 
-  return kandidat.map((k) => ({ id_user: k.id_user, users: petaUser.get(k.id_user) ?? null }));
+  return kandidat
+    .map((k) => ({ id_user: k.id_user, users: petaUser.get(k.id_user) ?? null }))
+    .filter((a) => a.users !== null);
 }
 
 // ------------------------------------------------------------

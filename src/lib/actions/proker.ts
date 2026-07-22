@@ -158,10 +158,16 @@ export async function daftarAnggotaUntukPanitia(id_periode: string) {
   if (semua.length === 0) return [];
 
   const idUser = Array.from(new Set(semua.map((b) => b.id_user)));
-  const { data: users } = await supabase.from("users").select("id_user, nama_lengkap, nim").in("id_user", idUser);
+  const { data: users } = await supabase
+    .from("users")
+    .select("id_user, nama_lengkap, nim")
+    .in("id_user", idUser)
+    .is("deleted_at", null);
   const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
 
-  return semua.map((b) => ({ id_user: b.id_user, users: petaUser.get(b.id_user) ?? null }));
+  return semua
+    .map((b) => ({ id_user: b.id_user, users: petaUser.get(b.id_user) ?? null }))
+    .filter((a) => a.users !== null);
 }
 
 export async function tambahPanitia(formData: FormData): Promise<HasilAksi> {
