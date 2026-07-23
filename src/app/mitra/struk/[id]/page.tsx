@@ -22,7 +22,7 @@ export default async function HalamanStruk({ params }: { params: Promise<{ id: s
       <div className="w-full max-w-sm rounded-xl border border-ink-700 bg-ink-900/60 p-7 font-display print:border-black print:bg-white print:text-black">
         <div className="mb-4 text-center">
           <p className="text-sm uppercase tracking-[0.14em] text-paper-300 print:text-black">{produk.mitra.nama_usaha}</p>
-          <p className="mt-1 text-xs text-paper-300 print:text-black">Nota Digital &middot; HIMATIF</p>
+          <p className="mt-1 text-xs text-paper-300 print:text-black">Nota Digital &middot; HMIF</p>
         </div>
 
         <div className="rule-signal mb-4 print:bg-black" />

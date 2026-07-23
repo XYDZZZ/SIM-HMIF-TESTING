@@ -259,7 +259,7 @@ export async function detailStruk(id_penjualan: string) {
 async function pastikanBolehOversightDanus() {
   const { requireLogin } = await import("@/lib/auth/authorize");
   const konteks = await requireLogin();
-  if (konteks.tipe !== "anggota") throw new Error("Aksi ini khusus anggota HIMATIF.");
+  if (konteks.tipe !== "anggota") throw new Error("Aksi ini khusus anggota HMIF.");
   if (konteks.is_superadmin) return konteks;
 
   const jabatanBoleh = ["Ketua", "Wakil Ketua", "Sekretaris", "Bendahara"];

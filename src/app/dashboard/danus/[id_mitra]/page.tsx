@@ -68,7 +68,7 @@ export default async function HalamanDetailMitraOversight({ params }: { params: 
                 <th className="px-3 py-2.5">Waktu</th>
                 <th className="px-3 py-2.5">Produk</th>
                 <th className="px-3 py-2.5">Omzet</th>
-                <th className="px-3 py-2.5">Hak HIMATIF</th>
+                <th className="px-3 py-2.5">Hak HMIF</th>
                 <th className="px-3 py-2.5">Status</th>
               </tr>
             </thead>

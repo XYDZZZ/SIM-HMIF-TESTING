@@ -12,7 +12,7 @@ import type { HasilAksi } from "./auth";
  */
 async function pastikanBolehKelolaProker(id_divisi: string | null) {
   const konteks = await requireLogin();
-  if (konteks.tipe !== "anggota") throw new Error("Aksi ini khusus anggota HIMATIF.");
+  if (konteks.tipe !== "anggota") throw new Error("Aksi ini khusus anggota HMIF.");
   if (konteks.is_superadmin) return konteks;
 
   if (id_divisi === null) {
@@ -106,6 +106,30 @@ export async function updateStatusProker(id_proker: string, status_proker: strin
   const { error } = await supabase.from("proker").update({ status_proker }).eq("id_proker", id_proker);
   if (error) return { sukses: false, pesan: "Gagal memperbarui status." };
   return { sukses: true, pesan: "Status proker diperbarui." };
+}
+
+/**
+ * Hapus proker (soft delete) -- untuk proker yang dianggap gagal/tidak jadi dilaksanakan.
+ * Guard sama seperti aksi kelola proker lain: Kadiv untuk divisinya sendiri, BPH untuk
+ * proker bersama, Superadmin untuk semua.
+ */
+export async function hapusProker(id_proker: string): Promise<HasilAksi> {
+  const supabase = createServerSupabaseClient();
+  const { data: existing } = await supabase
+    .from("proker")
+    .select("id_divisi")
+    .eq("id_proker", id_proker)
+    .single();
+  if (!existing) return { sukses: false, pesan: "Proker tidak ditemukan." };
+
+  await pastikanBolehKelolaProker(existing.id_divisi);
+
+  const { error } = await supabase
+    .from("proker")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id_proker", id_proker);
+  if (error) return { sukses: false, pesan: "Gagal menghapus proker: " + error.message };
+  return { sukses: true, pesan: "Proker berhasil dihapus." };
 }
 
 export async function tambahDokumenProker(formData: FormData): Promise<HasilAksi> {

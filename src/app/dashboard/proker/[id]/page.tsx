@@ -5,6 +5,7 @@ import { SelectorStatusProker } from "@/components/proker/SelectorStatusProker";
 import { FormTambahDokumen } from "@/components/proker/FormTambahDokumen";
 import { FormTambahPanitia } from "@/components/proker/FormTambahPanitia";
 import { TombolHapusPanitia } from "@/components/proker/TombolHapusPanitia";
+import { TombolHapusProker } from "@/components/proker/TombolHapusProker";
 
 export default async function HalamanDetailProker({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,7 +33,10 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
             <p className="mt-1 text-sm text-paper-300">{divisiObj?.nama_divisi ?? "Proker Bersama"}</p>
           </div>
           {periodeObj?.status_aktif ? (
-            <SelectorStatusProker id_proker={proker.id_proker} statusSaatIni={proker.status_proker} />
+            <div className="flex items-center gap-3">
+              <SelectorStatusProker id_proker={proker.id_proker} statusSaatIni={proker.status_proker} />
+              <TombolHapusProker id_proker={proker.id_proker} />
+            </div>
           ) : (
             <span className="text-xs text-paper-300">Periode terkunci — status tidak bisa diubah</span>
           )}

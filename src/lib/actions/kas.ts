@@ -2,6 +2,7 @@
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireJabatan, requireLogin } from "@/lib/auth/authorize";
+import { uploadBuktiKas, buatUrlBukti, hapusBuktiKas } from "@/lib/supabase/storage";
 import type { HasilAksi } from "./auth";
 
 // ------------------------------------------------------------
@@ -82,7 +83,13 @@ export async function daftarKasPending() {
   const { data: users } = await supabase.from("users").select("id_user, nama_lengkap, nim").in("id_user", idUser);
   const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
 
-  return semua.map((d) => ({ ...d, users: petaUser.get(d.id_user) ?? null }));
+  return Promise.all(
+    semua.map(async (d) => ({
+      ...d,
+      users: petaUser.get(d.id_user) ?? null,
+      url_bukti_tampil: await buatUrlBukti(d.bukti_url),
+    }))
+  );
 }
 
 // ------------------------------------------------------------
@@ -118,11 +125,15 @@ export async function ajukanPembayaranKas(formData: FormData): Promise<HasilAksi
   const kategori = formData.get("kategori") as string;
   const id_tagihan = (formData.get("id_tagihan") as string) || null;
   const nominal = Number(formData.get("nominal"));
-  const bukti_url = (formData.get("bukti_url") as string) || null;
+  const file = formData.get("bukti_file") as File | null;
 
-  if (!bukti_url) {
+  if (!file || file.size === 0) {
     return { sukses: false, pesan: "Bukti transfer wajib diunggah." };
   }
+
+  const folderKategori = kategori === "Kas Tagihan Khusus" ? "kas-tagihan-khusus" : "kas-rutin";
+  const hasilUpload = await uploadBuktiKas(file, folderKategori);
+  if (!hasilUpload.sukses) return { sukses: false, pesan: hasilUpload.pesan };
 
   const supabase = createServerSupabaseClient();
   const { error } = await supabase.from("kas_transaksi").insert({
@@ -132,7 +143,7 @@ export async function ajukanPembayaranKas(formData: FormData): Promise<HasilAksi
     id_tagihan,
     nominal,
     metode_pembayaran: "Transfer",
-    bukti_url,
+    bukti_url: hasilUpload.path,
     status: "Pending",
     sumber_transaksi: "Manual",
   });
@@ -174,7 +185,13 @@ export async function inputPengeluaran(formData: FormData): Promise<HasilAksi> {
 
   const nominal = Number(formData.get("nominal"));
   const keterangan = formData.get("keterangan") as string;
-  const bukti_url = (formData.get("bukti_url") as string) || null;
+  const bukti_file = formData.get("bukti_file") as File | null;
+  let bukti_url: string | null = null;
+  if (bukti_file && bukti_file.size > 0) {
+    const hasilUpload = await uploadBuktiKas(bukti_file, "pengeluaran");
+    if (!hasilUpload.sukses) return { sukses: false, pesan: hasilUpload.pesan };
+    bukti_url = hasilUpload.path;
+  }
 
   const supabase = createServerSupabaseClient();
   const { error } = await supabase.from("kas_transaksi").insert({
@@ -205,4 +222,90 @@ export async function verifikasiKas(id_transaksi: string, keputusan: "Lunas" | "
 
   if (error) return { sukses: false, pesan: "Gagal memverifikasi: " + error.message };
   return { sukses: true, pesan: keputusan === "Lunas" ? "Pembayaran diverifikasi Lunas." : "Pembayaran ditolak." };
+}
+
+// ------------------------------------------------------------
+// CRUD MANUAL BENDAHARA
+// Khusus baris yang sumber_transaksi = 'Manual' (input tunai/pengeluaran).
+// Baris 'Otomatis-Danus' TIDAK BOLEH diubah/dihapus lewat sini -- itu
+// harus lewat alur pembatalan transaksi Danus supaya stok & kas tetap sinkron.
+// ------------------------------------------------------------
+
+export async function daftarKasManual() {
+  await requireJabatan("Bendahara");
+  const supabase = createServerSupabaseClient();
+
+  const { data } = await supabase
+    .from("kas_transaksi")
+    .select("id_transaksi, id_user, jenis, kategori, nominal, keterangan, status, dibuat_pada, bukti_url")
+    .eq("sumber_transaksi", "Manual")
+    .is("deleted_at", null)
+    .order("dibuat_pada", { ascending: false });
+
+  const semua = data ?? [];
+  if (semua.length === 0) return [];
+
+  const idUser = Array.from(new Set(semua.map((d) => d.id_user)));
+  const { data: users } = await supabase.from("users").select("id_user, nama_lengkap").in("id_user", idUser);
+  const petaUser = new Map((users ?? []).map((u) => [u.id_user, u]));
+
+  return Promise.all(
+    semua.map(async (d) => ({
+      ...d,
+      users: petaUser.get(d.id_user) ?? null,
+      url_bukti_tampil: await buatUrlBukti(d.bukti_url),
+    }))
+  );
+}
+
+export async function updateTransaksiManual(formData: FormData): Promise<HasilAksi> {
+  await requireJabatan("Bendahara");
+
+  const id_transaksi = formData.get("id_transaksi") as string;
+  const nominal = Number(formData.get("nominal"));
+  const keterangan = (formData.get("keterangan") as string) || null;
+
+  const supabase = createServerSupabaseClient();
+  const { data: existing } = await supabase
+    .from("kas_transaksi")
+    .select("sumber_transaksi")
+    .eq("id_transaksi", id_transaksi)
+    .single();
+
+  if (!existing) return { sukses: false, pesan: "Transaksi tidak ditemukan." };
+  if (existing.sumber_transaksi !== "Manual") {
+    return { sukses: false, pesan: "Transaksi otomatis dari Danus tidak bisa diedit di sini." };
+  }
+
+  const { error } = await supabase
+    .from("kas_transaksi")
+    .update({ nominal, keterangan })
+    .eq("id_transaksi", id_transaksi);
+
+  if (error) return { sukses: false, pesan: "Gagal memperbarui: " + error.message };
+  return { sukses: true, pesan: "Transaksi berhasil diperbarui." };
+}
+
+export async function hapusTransaksiManual(id_transaksi: string): Promise<HasilAksi> {
+  await requireJabatan("Bendahara");
+
+  const supabase = createServerSupabaseClient();
+  const { data: existing } = await supabase
+    .from("kas_transaksi")
+    .select("sumber_transaksi")
+    .eq("id_transaksi", id_transaksi)
+    .single();
+
+  if (!existing) return { sukses: false, pesan: "Transaksi tidak ditemukan." };
+  if (existing.sumber_transaksi !== "Manual") {
+    return { sukses: false, pesan: "Transaksi otomatis dari Danus tidak bisa dihapus di sini." };
+  }
+
+  const { error } = await supabase
+    .from("kas_transaksi")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id_transaksi", id_transaksi);
+
+  if (error) return { sukses: false, pesan: "Gagal menghapus: " + error.message };
+  return { sukses: true, pesan: "Transaksi berhasil dihapus." };
 }

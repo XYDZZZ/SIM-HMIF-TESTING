@@ -15,7 +15,7 @@ export function AuthShell({
         <div className="mb-6 flex items-center gap-2.5">
           <span className="h-2 w-2 rounded-full bg-signal-500 shadow-[0_0_8px_2px_rgba(232,163,61,0.5)]" />
           <span className="font-display text-[12px] uppercase tracking-[0.2em] text-paper-300">
-            SIM · HIMATIF
+            SIM · HMIF
           </span>
         </div>
 

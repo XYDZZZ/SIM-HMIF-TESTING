@@ -29,7 +29,7 @@ export default function HalamanRegistrasi() {
           <Field label="Angkatan" name="angkatan" placeholder="2024" required />
         </div>
         <Field
-          label="Tahun Masuk HIMATIF"
+          label="Tahun Masuk HMIF"
           name="tahun_masuk_organisasi"
           placeholder="2024"
           required

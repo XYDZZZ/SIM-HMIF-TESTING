@@ -40,7 +40,7 @@ export default async function HalamanProfilAnggota({
         <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3">
           <InfoField label="NIM" value={user?.nim} />
           <InfoField label="Angkatan" value={user?.angkatan} />
-          <InfoField label="Tahun Masuk HIMATIF" value={user?.tahun_masuk_organisasi} />
+          <InfoField label="Tahun Masuk HMIF" value={user?.tahun_masuk_organisasi} />
           <InfoField label="Nomor WhatsApp" value={user?.nomor_whatsapp} />
           <InfoField label="Role" value={namaRole} />
           <InfoField label="Jabatan / Divisi" value={namaJabatan ?? namaDivisi ?? "-"} />

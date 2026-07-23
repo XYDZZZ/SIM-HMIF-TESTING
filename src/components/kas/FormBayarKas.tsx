@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ajukanPembayaranKas } from "@/lib/actions/kas";
 import type { HasilAksi } from "@/lib/actions/auth";
 import { Field } from "@/components/ui/Field";
+import { FileField } from "@/components/ui/FileField";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
@@ -65,13 +66,7 @@ export function FormBayarKas({
       )}
 
       <Field label="Nominal (Rp)" name="nominal" type="number" required />
-      <Field
-        label="URL Bukti Transfer"
-        name="bukti_url"
-        type="url"
-        required
-        placeholder="Tautan gambar bukti (mis. dari Google Drive/Cloudinary)"
-      />
+      <FileField label="Bukti Transfer" name="bukti_file" required />
 
       {state.pesan && <Alert sukses={state.sukses} pesan={state.pesan} />}
 

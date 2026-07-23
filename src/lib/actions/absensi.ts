@@ -12,7 +12,7 @@ import type { HasilAksi } from "./auth";
  */
 async function pastikanBolehKelolaAbsensi(id_kegiatan: string) {
   const konteks = await requireLogin();
-  if (konteks.tipe !== "anggota") throw new Error("Aksi ini khusus anggota HIMATIF.");
+  if (konteks.tipe !== "anggota") throw new Error("Aksi ini khusus anggota HMIF.");
   if (konteks.is_superadmin) return konteks;
   if (konteks.nama_jabatan === "Sekretaris") return konteks;
 

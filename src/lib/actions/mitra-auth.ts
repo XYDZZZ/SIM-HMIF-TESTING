@@ -57,7 +57,7 @@ export async function registrasiMitra(formData: FormData): Promise<HasilAksi> {
   return {
     sukses: true,
     pesan:
-      "Pendaftaran mitra terkirim. Akun akan aktif setelah disetujui oleh pengurus HIMATIF " +
+      "Pendaftaran mitra terkirim. Akun akan aktif setelah disetujui oleh pengurus HMIF " +
       "(biasanya dibahas dalam rapat internal terlebih dahulu).",
   };
 }
@@ -89,11 +89,11 @@ export async function loginMitra(formData: FormData): Promise<HasilAksi> {
   if (mitra.status_pendaftaran === "Menunggu") {
     return {
       sukses: false,
-      pesan: "Pendaftaran Anda masih menunggu persetujuan pengurus HIMATIF.",
+      pesan: "Pendaftaran Anda masih menunggu persetujuan pengurus HMIF.",
     };
   }
   if (mitra.status_pendaftaran === "Ditolak") {
-    return { sukses: false, pesan: "Pendaftaran mitra Anda tidak disetujui. Hubungi pengurus HIMATIF." };
+    return { sukses: false, pesan: "Pendaftaran mitra Anda tidak disetujui. Hubungi pengurus HMIF." };
   }
 
   await buatSession({ id: mitra.id_mitra, tipe: "mitra", nama: mitra.nama_usaha });

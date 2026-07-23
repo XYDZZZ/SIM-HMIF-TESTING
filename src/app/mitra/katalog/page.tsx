@@ -27,7 +27,7 @@ export default async function HalamanKatalogMitra() {
               <TogglStatusProduk id_produk={p.id_produk} status={p.status} />
             </div>
             <p className="mt-1.5 text-sm text-paper-300">
-              {formatRupiah(Number(p.harga_jual))} &middot; {p.persentase_margin_himatif}% margin HIMATIF
+              {formatRupiah(Number(p.harga_jual))} &middot; {p.persentase_margin_himatif}% margin HMIF
             </p>
             <Link href={`/mitra/katalog/${p.id_produk}`} className="mt-2 inline-block text-xs text-signal-400 hover:underline">
               Atur resep bahan baku &rarr;

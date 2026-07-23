@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getSession } from "./session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -28,9 +29,14 @@ export type Konteks = KonteksAnggota | KonteksMitra;
  * perubahan penugasan periode/role langsung ter-reflect tanpa perlu
  * logout-login ulang.
  *
+ * Dibungkus React cache() supaya kalau dipanggil berkali-kali dalam SATU
+ * request yang sama (mis. dari layout dan dari halaman sekaligus), query
+ * database hanya dijalankan sekali -- bukan diulang tiap pemanggilan.
+ * Cache ini otomatis "bersih" lagi di request berikutnya.
+ *
  * Return null kalau tidak ada session valid.
  */
-export async function getKonteksPengguna(): Promise<Konteks | null> {
+export const getKonteksPengguna = cache(async (): Promise<Konteks | null> => {
   const session = await getSession();
   if (!session) return null;
 
@@ -49,21 +55,18 @@ export async function getKonteksPengguna(): Promise<Konteks | null> {
     return { tipe: "mitra", id_mitra: mitra.id_mitra, nama_usaha: mitra.nama_usaha };
   }
 
-  // tipe === "anggota"
-  const { data: user } = await supabase
-    .from("users")
-    .select("id_user, nama_lengkap, is_superadmin")
-    .eq("id_user", session.id)
-    .is("deleted_at", null)
-    .single();
+  // tipe === "anggota" -- user & periode aktif independen satu sama lain, jalankan paralel
+  const [{ data: user }, { data: periodeAktif }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("id_user, nama_lengkap, is_superadmin")
+      .eq("id_user", session.id)
+      .is("deleted_at", null)
+      .single(),
+    supabase.from("periode").select("id_periode").eq("status_aktif", true).single(),
+  ]);
 
   if (!user) return null;
-
-  const { data: periodeAktif } = await supabase
-    .from("periode")
-    .select("id_periode")
-    .eq("status_aktif", true)
-    .single();
 
   let id_role: string | null = null;
   let nama_role: KonteksAnggota["nama_role"] = null;
@@ -101,7 +104,7 @@ export async function getKonteksPengguna(): Promise<Konteks | null> {
     nama_jabatan,
     id_divisi,
   };
-}
+});
 
 // ------------------------------------------------------------
 // Guard — dipanggil di awal tiap server action yang butuh proteksi.
@@ -128,7 +131,7 @@ export async function requireRole(
 ): Promise<KonteksAnggota> {
   const konteks = await requireLogin();
   if (konteks.tipe !== "anggota") {
-    throw new Error("Aksi ini khusus anggota HIMATIF.");
+    throw new Error("Aksi ini khusus anggota HMIF.");
   }
   // Superadmin selalu lolos guard role apa pun, sesuai posisinya sebagai developer-level access
   if (konteks.is_superadmin) return konteks;

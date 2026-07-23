@@ -8,7 +8,7 @@ const BULAN_ROMAWI = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X
 
 async function pastikanBolehLihatSurat() {
   const konteks = await requireLogin();
-  if (konteks.tipe !== "anggota") throw new Error("Aksi ini khusus anggota HIMATIF.");
+  if (konteks.tipe !== "anggota") throw new Error("Aksi ini khusus anggota HMIF.");
   if (konteks.is_superadmin) return konteks;
   if (konteks.nama_role !== "BPH") throw new Error("Modul Surat khusus BPH.");
   return konteks;
@@ -24,7 +24,9 @@ export async function daftarSurat(id_periode: string, filter?: { jenis?: string;
 
   let query = supabase
     .from("surat")
-    .select("id_surat, jenis, nomor_surat, perihal, tanggal_surat, asal_tujuan, url_dokumen")
+    .select(
+      "id_surat, jenis, nomor_surat, perihal, tanggal_surat, asal_tujuan, url_dokumen, kategori_penerbit, kode_kegiatan"
+    )
     .eq("id_periode", id_periode)
     .is("deleted_at", null)
     .order("tanggal_surat", { ascending: false });
@@ -57,25 +59,51 @@ export async function rekapPerBulan(id_periode: string) {
   return rekap;
 }
 
-/** Saran nomor surat Keluar berikutnya, format: {urut}/HMIF/{bulan-romawi}/{tahun}. */
-export async function nomorSuratBerikutnya(id_periode: string) {
+/**
+ * Saran nomor urut surat Keluar berikutnya, sesuai Tata Cara Penulisan Nomor Surat HMIF:
+ *   - Kepengurusan: XXX/KODE/HMIF-UNPERBA/ROMAWI/TAHUN -- nomor urut jalan terus
+ *     selama periode kepengurusan masih aktif (reset di awal periode baru).
+ *   - Kepanitiaan : XXX/KODE/PANPEL/KODE-KEGIATAN/ROMAWI/TAHUN -- nomor urut terpisah
+ *     untuk TIAP kegiatan/kepanitiaan (bukan ikut periode maupun tahun kalender).
+ */
+export async function nomorSuratBerikutnya(
+  id_periode: string,
+  kategori_penerbit: "Kepengurusan" | "Kepanitiaan",
+  kode_jenis_surat: string,
+  kode_kegiatan?: string
+): Promise<{ sukses: true; nomor: string } | { sukses: false; pesan: string }> {
   await pastikanBolehLihatSurat();
   const supabase = createServerSupabaseClient();
 
   const sekarang = new Date();
   const tahun = sekarang.getFullYear();
+  const romawi = BULAN_ROMAWI[sekarang.getMonth()];
 
-  const { count } = await supabase
+  let query = supabase
     .from("surat")
     .select("id_surat", { count: "exact", head: true })
-    .eq("id_periode", id_periode)
     .eq("jenis", "Keluar")
-    .is("deleted_at", null)
-    .gte("tanggal_surat", `${tahun}-01-01`)
-    .lte("tanggal_surat", `${tahun}-12-31`);
+    .eq("kategori_penerbit", kategori_penerbit)
+    .is("deleted_at", null);
 
+  if (kategori_penerbit === "Kepengurusan") {
+    query = query.eq("id_periode", id_periode);
+  } else {
+    if (!kode_kegiatan) {
+      return { sukses: false, pesan: "Isi kode kegiatan dulu untuk melihat saran nomor." };
+    }
+    query = query.ilike("kode_kegiatan", kode_kegiatan);
+  }
+
+  const { count } = await query;
   const urutan = String((count ?? 0) + 1).padStart(3, "0");
-  return `${urutan}/HMIF/${BULAN_ROMAWI[sekarang.getMonth()]}/${tahun}`;
+
+  const nomor =
+    kategori_penerbit === "Kepengurusan"
+      ? `${urutan}/${kode_jenis_surat}/HMIF-UNPERBA/${romawi}/${tahun}`
+      : `${urutan}/${kode_jenis_surat}/PANPEL/${(kode_kegiatan ?? "").toUpperCase()}/${romawi}/${tahun}`;
+
+  return { sukses: true, nomor };
 }
 
 // ------------------------------------------------------------
@@ -92,6 +120,9 @@ export async function catatSurat(formData: FormData): Promise<HasilAksi> {
   const tanggal_surat = formData.get("tanggal_surat") as string;
   const asal_tujuan = (formData.get("asal_tujuan") as string) || null;
   const url_dokumen = (formData.get("url_dokumen") as string) || null;
+  const kategori_penerbit = (formData.get("kategori_penerbit") as string) || null;
+  const kode_jenis_surat = (formData.get("kode_jenis_surat") as string) || null;
+  const kode_kegiatan = (formData.get("kode_kegiatan") as string) || null;
 
   const supabase = createServerSupabaseClient();
   const { error } = await supabase.from("surat").insert({
@@ -102,6 +133,9 @@ export async function catatSurat(formData: FormData): Promise<HasilAksi> {
     tanggal_surat,
     asal_tujuan,
     url_dokumen,
+    kategori_penerbit: jenis === "Keluar" ? kategori_penerbit : null,
+    kode_jenis_surat: jenis === "Keluar" ? kode_jenis_surat : null,
+    kode_kegiatan: jenis === "Keluar" && kategori_penerbit === "Kepanitiaan" ? kode_kegiatan?.toUpperCase() : null,
     dicatat_oleh: konteks.id_user,
   });
 

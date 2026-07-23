@@ -39,9 +39,9 @@ export default async function HalamanVerifikasiKas() {
                     {tagihan?.nama_tagihan ?? "Kas Rutin"} &middot; {formatRupiah(Number(t.nominal))} &middot;{" "}
                     {t.metode_pembayaran}
                   </p>
-                  {t.bukti_url && (
+                  {t.url_bukti_tampil && (
                     <a
-                      href={t.bukti_url}
+                      href={t.url_bukti_tampil}
                       target="_blank"
                       rel="noreferrer"
                       className="mt-1 inline-block text-sm text-signal-400 hover:underline"

@@ -17,7 +17,7 @@ export default async function HalamanDetailProdukMitra({ params }: { params: Pro
       <div className="rounded-xl border border-ink-700 bg-ink-900/60 p-7">
         <h1 className="font-display text-2xl text-paper-100">{produk.nama_item}</h1>
         <p className="mt-1 text-sm text-paper-300">
-          Rp{Number(produk.harga_jual).toLocaleString("id-ID")} &middot; {produk.persentase_margin_himatif}% margin HIMATIF
+          Rp{Number(produk.harga_jual).toLocaleString("id-ID")} &middot; {produk.persentase_margin_himatif}% margin HMIF
         </p>
       </div>
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { inputPengeluaran } from "@/lib/actions/kas";
 import type { HasilAksi } from "@/lib/actions/auth";
 import { Field } from "@/components/ui/Field";
+import { FileField } from "@/components/ui/FileField";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
@@ -25,7 +26,7 @@ export function FormPengeluaran() {
     <form action={formAction} className="space-y-4">
       <Field label="Nominal (Rp)" name="nominal" type="number" required />
       <Field label="Keterangan" name="keterangan" required placeholder="Beli spanduk Proker X" />
-      <Field label="URL Nota/Bukti (opsional)" name="bukti_url" type="url" />
+      <FileField label="Foto Nota/Bukti (opsional)" name="bukti_file" />
       {state.pesan && <Alert sukses={state.sukses} pesan={state.pesan} />}
       <Button type="submit" disabled={pending} className="w-auto px-5">
         {pending ? "Menyimpan..." : "Catat Pengeluaran"}

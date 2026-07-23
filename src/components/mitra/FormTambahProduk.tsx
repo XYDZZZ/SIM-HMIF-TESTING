@@ -38,7 +38,7 @@ export function FormTambahProduk() {
       <Field label="Nama Produk" name="nama_item" required autoFocus placeholder="Cetak Hitam Putih (per lembar)" />
       <div className="grid grid-cols-2 gap-3">
         <Field label="Harga Jual (Rp)" name="harga_jual" type="number" required />
-        <Field label="% Margin HIMATIF" name="persentase_margin_himatif" type="number" step="0.5" required />
+        <Field label="% Margin HMIF" name="persentase_margin_himatif" type="number" step="0.5" required />
       </div>
       {state.pesan && <Alert sukses={state.sukses} pesan={state.pesan} />}
       <div className="flex gap-2">

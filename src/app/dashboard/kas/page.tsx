@@ -40,7 +40,7 @@ export default async function HalamanKas({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl text-paper-100">Kas HIMATIF</h1>
+          <h1 className="font-display text-2xl text-paper-100">Kas HMIF</h1>
           <p className="mt-1 text-sm text-paper-300">Transparan bagi seluruh anggota.</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -63,6 +63,12 @@ export default async function HalamanKas({
                 className="rounded-md border border-ink-600 px-4 py-2 font-display text-[12px] uppercase tracking-[0.08em] text-paper-100 hover:border-signal-500"
               >
                 Tagihan Khusus
+              </Link>
+              <Link
+                href="/dashboard/kas/kelola"
+                className="rounded-md border border-ink-600 px-4 py-2 font-display text-[12px] uppercase tracking-[0.08em] text-paper-100 hover:border-signal-500"
+              >
+                Kelola Manual
               </Link>
               <Link
                 href="/dashboard/kas/pengeluaran"

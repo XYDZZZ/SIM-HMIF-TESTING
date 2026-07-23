@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { catatSurat, nomorSuratBerikutnya } from "@/lib/actions/surat";
+import { KODE_JENIS_SURAT } from "@/lib/constants/surat";
 import type { HasilAksi } from "@/lib/actions/auth";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
@@ -13,8 +14,12 @@ const stateAwal: HasilAksi = { sukses: false, pesan: "" };
 export function FormCatatSurat({ id_periode }: { id_periode: string }) {
   const router = useRouter();
   const [jenis, setJenis] = useState<"Masuk" | "Keluar">("Keluar");
+  const [kategoriPenerbit, setKategoriPenerbit] = useState<"Kepengurusan" | "Kepanitiaan">("Kepengurusan");
+  const [kodeJenisSurat, setKodeJenisSurat] = useState<string>(KODE_JENIS_SURAT[0].kode);
+  const [kodeKegiatan, setKodeKegiatan] = useState("");
   const [nomorSurat, setNomorSurat] = useState("");
   const [mengambilSaran, setMengambilSaran] = useState(false);
+  const [errorSaran, setErrorSaran] = useState<string | null>(null);
 
   const [state, formAction, pending] = useActionState(
     async (_prev: HasilAksi, formData: FormData) => {
@@ -29,10 +34,12 @@ export function FormCatatSurat({ id_periode }: { id_periode: string }) {
   );
 
   async function ambilSaranNomor() {
+    setErrorSaran(null);
     setMengambilSaran(true);
-    const saran = await nomorSuratBerikutnya(id_periode);
-    setNomorSurat(saran);
+    const hasil = await nomorSuratBerikutnya(id_periode, kategoriPenerbit, kodeJenisSurat, kodeKegiatan);
     setMengambilSaran(false);
+    if (hasil.sukses) setNomorSurat(hasil.nomor);
+    else setErrorSaran(hasil.pesan);
   }
 
   return (
@@ -54,6 +61,54 @@ export function FormCatatSurat({ id_periode }: { id_periode: string }) {
         </select>
       </label>
 
+      {jenis === "Keluar" && (
+        <>
+          <label className="block">
+            <span className="block font-display text-[11px] uppercase tracking-[0.14em] text-paper-300 mb-1.5">
+              Kategori Penerbit
+            </span>
+            <select
+              name="kategori_penerbit"
+              value={kategoriPenerbit}
+              onChange={(e) => setKategoriPenerbit(e.target.value as "Kepengurusan" | "Kepanitiaan")}
+              className="w-full rounded-md border border-ink-600 bg-ink-900 px-3.5 py-2.5 text-[15px] text-paper-100 outline-none focus:border-signal-500"
+            >
+              <option value="Kepengurusan">Kepengurusan (dari Pengurus HMIF)</option>
+              <option value="Kepanitiaan">Kepanitiaan (dari Panitia Pelaksana)</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="block font-display text-[11px] uppercase tracking-[0.14em] text-paper-300 mb-1.5">
+              Kode Jenis Surat
+            </span>
+            <select
+              name="kode_jenis_surat"
+              value={kodeJenisSurat}
+              onChange={(e) => setKodeJenisSurat(e.target.value)}
+              className="w-full rounded-md border border-ink-600 bg-ink-900 px-3.5 py-2.5 text-[15px] text-paper-100 outline-none focus:border-signal-500"
+            >
+              {KODE_JENIS_SURAT.map((k) => (
+                <option key={k.kode} value={k.kode}>
+                  {k.kode} — {k.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {kategoriPenerbit === "Kepanitiaan" && (
+            <Field
+              label="Kode Kegiatan"
+              name="kode_kegiatan"
+              required
+              placeholder="MUBES"
+              value={kodeKegiatan}
+              onChange={(e) => setKodeKegiatan(e.target.value.toUpperCase())}
+            />
+          )}
+        </>
+      )}
+
       <div>
         <span className="block font-display text-[11px] uppercase tracking-[0.14em] text-paper-300 mb-1.5">
           Nomor Surat
@@ -64,7 +119,7 @@ export function FormCatatSurat({ id_periode }: { id_periode: string }) {
             value={nomorSurat}
             onChange={(e) => setNomorSurat(e.target.value)}
             required
-            placeholder={jenis === "Masuk" ? "Nomor sesuai surat asli dari pengirim" : "001/HMIF/VII/2026"}
+            placeholder={jenis === "Masuk" ? "Nomor sesuai surat asli dari pengirim" : "001/UND/HMIF-UNPERBA/VIII/2026"}
             className="flex-1 rounded-md border border-ink-600 bg-ink-900 px-3.5 py-2.5 text-[15px] text-paper-100 outline-none focus:border-signal-500"
           />
           {jenis === "Keluar" && (
@@ -78,6 +133,7 @@ export function FormCatatSurat({ id_periode }: { id_periode: string }) {
             </button>
           )}
         </div>
+        {errorSaran && <p className="mt-1 text-xs text-danger-500">{errorSaran}</p>}
       </div>
 
       <Field label="Perihal" name="perihal" required placeholder="Undangan Rapat Koordinasi" />

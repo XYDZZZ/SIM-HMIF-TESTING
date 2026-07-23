@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getKonteksPengguna } from "@/lib/auth/authorize";
 import { getPeriodeAktif } from "@/lib/actions/periode";
 import { daftarSurat, rekapPerBulan } from "@/lib/actions/surat";
+import { KODE_JENIS_SURAT } from "@/lib/constants/surat";
 import { FormCatatSurat } from "@/components/surat/FormCatatSurat";
 import { Badge } from "@/components/ui/Badge";
 
@@ -34,16 +35,44 @@ export default async function HalamanSurat({
         <p className="mt-1 text-sm text-paper-300">Periode {periodeAktif.nama_periode}</p>
       </div>
 
-      <div className="rounded-xl border border-ink-700 bg-ink-900/60 p-5">
-        <p className="mb-2 font-display text-[11px] uppercase tracking-[0.14em] text-signal-400">
+      <div className="rounded-xl border border-ink-700 bg-ink-900/60 p-5 space-y-4">
+        <p className="font-display text-[11px] uppercase tracking-[0.14em] text-signal-400">
           Panduan Penomoran Surat Keluar
         </p>
-        <p className="text-sm text-paper-300">
-          Format: <span className="text-paper-100">Nomor Urut / HMIF / Bulan (Angka Romawi) / Tahun</span> — contoh:{" "}
-          <span className="text-paper-100">005/HMIF/VII/2026</span> berarti surat ke-5 di bulan Juli 2026. Nomor
-          urut dihitung ulang tiap tahun. Sesuaikan kode <span className="text-paper-100">HMIF</span> di atas
-          dengan singkatan resmi himpunan kalau berbeda. Klik <span className="text-paper-100">Saran Nomor</span> di
-          form untuk mengambil nomor urut berikutnya secara otomatis.
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-ink-700 bg-ink-900/60 p-4">
+            <p className="text-xs uppercase tracking-[0.08em] text-paper-300 mb-1.5">Surat Kepengurusan</p>
+            <p className="font-display text-sm text-paper-100">XXX/KODE/HMIF-UNPERBA/ROMAWI/TAHUN</p>
+            <p className="mt-1.5 text-xs text-paper-300">
+              Contoh: <span className="text-paper-100">021/UND/HMIF-UNPERBA/VIII/2026</span>. Nomor urut jalan
+              terus selama periode kepengurusan aktif, reset ke 001 di awal periode baru.
+            </p>
+          </div>
+          <div className="rounded-lg border border-ink-700 bg-ink-900/60 p-4">
+            <p className="text-xs uppercase tracking-[0.08em] text-paper-300 mb-1.5">Surat Kepanitiaan</p>
+            <p className="font-display text-sm text-paper-100">XXX/KODE/PANPEL/KODE-KEGIATAN/ROMAWI/TAHUN</p>
+            <p className="mt-1.5 text-xs text-paper-300">
+              Contoh: <span className="text-paper-100">015/UND/PANPEL/MUBES/VIII/2026</span>. Nomor urut terpisah
+              untuk tiap kepanitiaan/kegiatan, tidak ikut reset periode maupun tahun.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-xs uppercase tracking-[0.08em] text-paper-300">Kode Jenis Surat</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-paper-300 sm:grid-cols-3">
+            {KODE_JENIS_SURAT.map((k) => (
+              <p key={k.kode}>
+                <span className="text-paper-100">{k.kode}</span> — {k.label}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-xs text-paper-300">
+          Klik <span className="text-paper-100">Saran Nomor</span> di form untuk mengambil nomor urut berikutnya
+          secara otomatis sesuai kategori yang dipilih.
         </p>
       </div>
 
@@ -96,6 +125,7 @@ export default async function HalamanSurat({
                 <th className="px-3 py-2.5">Nomor</th>
                 <th className="px-3 py-2.5">Perihal</th>
                 <th className="px-3 py-2.5">Dari/Kepada</th>
+                <th className="px-3 py-2.5">Kategori</th>
                 <th className="px-3 py-2.5">Jenis</th>
               </tr>
             </thead>
@@ -114,6 +144,9 @@ export default async function HalamanSurat({
                   </td>
                   <td className="px-3 py-2.5 text-paper-300">{s.perihal}</td>
                   <td className="px-3 py-2.5 text-paper-300">{s.asal_tujuan ?? "-"}</td>
+                  <td className="px-3 py-2.5 text-paper-300">
+                    {s.kategori_penerbit ? `${s.kategori_penerbit}${s.kode_kegiatan ? ` · ${s.kode_kegiatan}` : ""}` : "-"}
+                  </td>
                   <td className="px-3 py-2.5">
                     <Badge warna={s.jenis === "Masuk" ? "signal" : "ok"}>{s.jenis}</Badge>
                   </td>
@@ -121,7 +154,7 @@ export default async function HalamanSurat({
               ))}
               {surat.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-paper-300">
+                  <td colSpan={6} className="px-3 py-6 text-center text-paper-300">
                     Belum ada surat tercatat.
                   </td>
                 </tr>
