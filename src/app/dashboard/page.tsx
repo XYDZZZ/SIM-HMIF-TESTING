@@ -1,4 +1,13 @@
+import Link from "next/link";
 import { getKonteksPengguna } from "@/lib/auth/authorize";
+
+const menuUtama = [
+  { href: "/dashboard/periode", label: "Periode", deskripsi: "Kelola periode kepengurusan & keanggotaan" },
+  { href: "/dashboard/proker", label: "Proker", deskripsi: "Program kerja divisi & bersama" },
+  { href: "/dashboard/kegiatan", label: "Kegiatan", deskripsi: "Rapat, absensi, dan poin keaktifan" },
+  { href: "/dashboard/kas", label: "Kas", deskripsi: "Transparansi keuangan & tagihan khusus" },
+  { href: "/dashboard/danus", label: "Danus", deskripsi: "Oversight mitra & kemitraan usaha" },
+];
 
 export default async function HalamanDashboard() {
   const konteks = await getKonteksPengguna();
@@ -15,11 +24,17 @@ export default async function HalamanDashboard() {
         </p>
       </div>
 
-      <div className="rounded-xl border border-ink-700 bg-ink-900/60 p-6">
-        <p className="font-display text-[11px] uppercase tracking-[0.14em] text-paper-300 mb-3">
-          Modul lain (Proker, Absensi, Kas, Danus, Manajemen Periode) sedang dalam tahap
-          pengembangan selanjutnya.
-        </p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {menuUtama.map((m) => (
+          <Link
+            key={m.href}
+            href={m.href}
+            className="group rounded-xl border border-ink-700 bg-ink-900/60 p-5 transition-colors hover:border-signal-500/50"
+          >
+            <p className="font-display text-sm text-paper-100 group-hover:text-signal-400">{m.label}</p>
+            <p className="mt-1.5 text-sm text-paper-300">{m.deskripsi}</p>
+          </Link>
+        ))}
       </div>
     </div>
   );

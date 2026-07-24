@@ -1,32 +1,47 @@
-import type { Metadata } from "next";
-import { IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
-import "./globals.css";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { getKonteksPengguna } from "@/lib/auth/authorize";
+import { TombolLogout } from "@/components/auth/TombolLogout";
+import { NavMobile } from "@/components/ui/NavMobile";
 
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
+const itemNav = [
+  { href: "/mitra/katalog", label: "Katalog" },
+  { href: "/mitra/stok", label: "Stok" },
+  { href: "/mitra/transaksi", label: "Transaksi" },
+];
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+export default async function MitraLayout({ children }: { children: React.ReactNode }) {
+  const konteks = await getKonteksPengguna();
+  if (!konteks || konteks.tipe !== "mitra") redirect("/login");
 
-export const metadata: Metadata = {
-  title: "SIM HMIF",
-  description: "Sistem Informasi Manajemen HMIF",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
   return (
-    <html lang="id" className={`${plexMono.variable} ${jakarta.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-ink-950 text-paper-100">{children}</body>
-    </html>
+    <div className="min-h-screen bg-ink-950">
+      <header className="relative border-b border-ink-700 bg-ink-900/60 backdrop-blur-sm print:hidden">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
+          <div className="flex items-center gap-6">
+            <Link href="/mitra" className="font-display text-[12px] uppercase tracking-[0.2em] text-paper-300">
+              PORTAL MITRA
+            </Link>
+            <nav className="hidden gap-5 sm:flex">
+              {itemNav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="font-display text-[11px] uppercase tracking-[0.1em] text-paper-300 hover:text-signal-400"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+          <div className="flex items-center gap-4">
+            <NavMobile items={itemNav} />
+            <p className="hidden text-sm text-paper-100 sm:block">{konteks.nama_usaha}</p>
+            <TombolLogout />
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
+    </div>
   );
 }
