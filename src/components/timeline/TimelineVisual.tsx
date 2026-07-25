@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+export type TipeItemTimeline = "bersama" | "divisi" | "kegiatan";
+
 export interface ItemTimeline {
   id: string;
   judul: string;
@@ -11,6 +13,7 @@ export interface ItemTimeline {
   tanggal_mulai: string | null;
   tanggal_selesai?: string | null;
   href: string;
+  tipe?: TipeItemTimeline; // dipakai di tab "Semua" -- terminal (bersama) / halte (divisi) / titik (kegiatan)
 }
 
 const warnaTitikMap: Record<string, string> = {
@@ -27,6 +30,21 @@ const warnaTeksMap: Record<string, string> = {
   Dibatalkan: "text-danger-500",
 };
 
+const labelTipe: Record<TipeItemTimeline, string> = {
+  bersama: "Terminal · Proker Bersama",
+  divisi: "Halte · Proker Divisi",
+  kegiatan: "Titik · Kegiatan",
+};
+
+// Ukuran titik beda per tipe: terminal (proker bersama) paling besar, halte (proker divisi)
+// medium, titik (kegiatan) paling kecil -- analoginya proker bersama = terminal utama,
+// proker divisi = halte pemberhentian, kegiatan = titik singgah menuju proker itu.
+const ukuranTitik: Record<TipeItemTimeline, string> = {
+  bersama: "h-5 w-5",
+  divisi: "h-4 w-4",
+  kegiatan: "h-2.5 w-2.5",
+};
+
 function warnaTitik(status: string) {
   return warnaTitikMap[status] ?? "bg-ink-400 border-ink-400";
 }
@@ -40,6 +58,11 @@ function DetailItem({ item }: { item: ItemTimeline }) {
       href={item.href}
       className="block rounded-lg border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-signal-500/50"
     >
+      {item.tipe && (
+        <p className="mb-1 font-display text-[10px] uppercase tracking-[0.08em] text-paper-300">
+          {labelTipe[item.tipe]}
+        </p>
+      )}
       <p className="text-sm text-paper-100">{item.judul}</p>
       {item.subjudul && <p className="mt-0.5 text-xs text-paper-300">{item.subjudul}</p>}
       <p className="mt-1 text-xs text-paper-300">
@@ -53,7 +76,7 @@ function DetailItem({ item }: { item: ItemTimeline }) {
   );
 }
 
-export function TimelineVisual({ items }: { items: ItemTimeline[] }) {
+export function TimelineVisual({ items, tampilkanLegenda }: { items: ItemTimeline[]; tampilkanLegenda?: boolean }) {
   const [orientasi, setOrientasi] = useState<"vertical" | "horizontal">("vertical");
   const [terpilih, setTerpilih] = useState<string | null>(null);
 
@@ -69,64 +92,91 @@ export function TimelineVisual({ items }: { items: ItemTimeline[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        {(["vertical", "horizontal"] as const).map((o) => (
-          <button
-            key={o}
-            onClick={() => {
-              setOrientasi(o);
-              setTerpilih(null);
-            }}
-            className={`rounded-md border px-3.5 py-1.5 font-display text-[11px] uppercase tracking-[0.08em] ${
-              orientasi === o
-                ? "border-signal-500 bg-signal-500/10 text-signal-400"
-                : "border-ink-600 text-paper-300 hover:text-paper-100"
-            }`}
-          >
-            {o === "vertical" ? "Vertikal" : "Horizontal"}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          {(["vertical", "horizontal"] as const).map((o) => (
+            <button
+              key={o}
+              onClick={() => {
+                setOrientasi(o);
+                setTerpilih(null);
+              }}
+              className={`rounded-md border px-3.5 py-1.5 font-display text-[11px] uppercase tracking-[0.08em] ${
+                orientasi === o
+                  ? "border-signal-500 bg-signal-500/10 text-signal-400"
+                  : "border-ink-600 text-paper-300 hover:text-paper-100"
+              }`}
+            >
+              {o === "vertical" ? "Vertikal" : "Horizontal"}
+            </button>
+          ))}
+        </div>
+
+        {tampilkanLegenda && (
+          <div className="flex flex-wrap items-center gap-4 text-[11px] text-paper-300">
+            <span className="flex items-center gap-1.5">
+              <span className="h-5 w-5 rounded-full border-2 border-paper-300" /> Terminal (Bersama)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-4 w-4 rounded-full border-2 border-paper-300" /> Halte (Divisi)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border-2 border-paper-300" /> Titik (Kegiatan)
+            </span>
+          </div>
+        )}
       </div>
 
       {orientasi === "vertical" ? (
         <div className="relative pl-8">
           <div className="absolute left-[11px] top-2 bottom-2 w-px bg-ink-600" />
           <div className="space-y-3">
-            {terurut.map((item) => (
-              <div key={item.id} className="relative">
-                <span
-                  className={`absolute -left-8 top-1.5 h-3.5 w-3.5 rounded-full border-2 ${warnaTitik(item.status)}`}
-                />
-                <button
-                  onClick={() => setTerpilih(terpilih === item.id ? null : item.id)}
-                  className="w-full rounded-xl border border-ink-700 bg-ink-900/60 p-4 text-left transition-colors hover:border-signal-500/50"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm text-paper-100">{item.judul}</p>
-                    <span className={`font-display text-[10px] uppercase tracking-[0.08em] ${warnaTeks(item.status)}`}>
-                      {item.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-paper-300">
-                    {item.subjudul}
-                    {item.subjudul && item.tanggal_mulai && " · "}
-                    {item.tanggal_mulai}
-                    {item.tanggal_selesai && ` s/d ${item.tanggal_selesai}`}
-                  </p>
-                </button>
+            {terurut.map((item) => {
+              const ukuran = item.tipe ? ukuranTitik[item.tipe] : "h-3.5 w-3.5";
+              return (
+                <div key={item.id} className="relative">
+                  <span
+                    className={`absolute -left-8 top-2.5 rounded-full border-2 ${ukuran} ${warnaTitik(item.status)}`}
+                    style={{ transform: "translateY(-50%)" }}
+                  />
+                  <button
+                    onClick={() => setTerpilih(terpilih === item.id ? null : item.id)}
+                    className="w-full rounded-xl border border-ink-700 bg-ink-900/60 p-4 text-left transition-colors hover:border-signal-500/50"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        {item.tipe && (
+                          <p className="font-display text-[10px] uppercase tracking-[0.08em] text-paper-300">
+                            {labelTipe[item.tipe]}
+                          </p>
+                        )}
+                        <p className="text-sm text-paper-100">{item.judul}</p>
+                      </div>
+                      <span className={`font-display text-[10px] uppercase tracking-[0.08em] ${warnaTeks(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-paper-300">
+                      {item.subjudul}
+                      {item.subjudul && item.tanggal_mulai && " · "}
+                      {item.tanggal_mulai}
+                      {item.tanggal_selesai && ` s/d ${item.tanggal_selesai}`}
+                    </p>
+                  </button>
 
-                {terpilih === item.id && (
-                  <div className="mt-2 pl-1">
-                    <Link
-                      href={item.href}
-                      className="inline-block rounded-md border border-signal-500/40 bg-signal-500/10 px-4 py-2 text-xs text-signal-400 hover:bg-signal-500/20"
-                    >
-                      Buka detail lengkap &rarr;
-                    </Link>
-                  </div>
-                )}
-              </div>
-            ))}
+                  {terpilih === item.id && (
+                    <div className="mt-2 pl-1">
+                      <Link
+                        href={item.href}
+                        className="inline-block rounded-md border border-signal-500/40 bg-signal-500/10 px-4 py-2 text-xs text-signal-400 hover:bg-signal-500/20"
+                      >
+                        Buka detail lengkap &rarr;
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (
@@ -134,21 +184,24 @@ export function TimelineVisual({ items }: { items: ItemTimeline[] }) {
           <div className="overflow-x-auto pb-3">
             <div className="relative flex min-w-max items-start gap-10 px-2 pt-6">
               <div className="absolute left-2 right-2 top-[34px] h-px bg-ink-600" />
-              {terurut.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setTerpilih(terpilih === item.id ? null : item.id)}
-                  className="relative flex w-36 flex-col items-center text-center"
-                >
-                  <span
-                    className={`z-10 h-4 w-4 rounded-full border-2 ${warnaTitik(item.status)} ${
-                      terpilih === item.id ? "ring-2 ring-signal-400 ring-offset-2 ring-offset-ink-950" : ""
-                    }`}
-                  />
-                  <p className="mt-3 line-clamp-2 text-xs text-paper-100">{item.judul}</p>
-                  <p className="mt-1 text-[10px] text-paper-300">{item.tanggal_mulai ?? "-"}</p>
-                </button>
-              ))}
+              {terurut.map((item) => {
+                const ukuran = item.tipe ? ukuranTitik[item.tipe] : "h-4 w-4";
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setTerpilih(terpilih === item.id ? null : item.id)}
+                    className="relative flex w-36 flex-col items-center text-center"
+                  >
+                    <span
+                      className={`z-10 rounded-full border-2 ${ukuran} ${warnaTitik(item.status)} ${
+                        terpilih === item.id ? "ring-2 ring-signal-400 ring-offset-2 ring-offset-ink-950" : ""
+                      }`}
+                    />
+                    <p className="mt-3 line-clamp-2 text-xs text-paper-100">{item.judul}</p>
+                    <p className="mt-1 text-[10px] text-paper-300">{item.tanggal_mulai ?? "-"}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

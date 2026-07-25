@@ -1,4 +1,4 @@
-# SIM HIMATIF
+# SIM HMIF
 
 Sistem Informasi Manajemen Himpunan Mahasiswa Informatika — Next.js + Supabase (PostgreSQL).
 
@@ -16,6 +16,12 @@ Sistem Informasi Manajemen Himpunan Mahasiswa Informatika — Next.js + Supabase
 - Kas & Tagihan Khusus: dashboard transparan (semua anggota bisa lihat, filter per kategori), pengajuan pembayaran (transfer + bukti), input tunai & pengeluaran oleh Bendahara, verifikasi (Lunas/Ditolak), ringkasan saldo real-time
 - Portal Mitra: katalog produk (dengan toggle status), stok bahan baku + restock, resep produk (multi-bahan), transaksi (lewat RPC atomik — hitung margin, potong stok tanpa blokir, sinkron otomatis ke Kas Danus), pembatalan transaksi (rollback stok + kas), cetak struk (print browser, bukan kirim WhatsApp)
 - Oversight Danus: Ketua/Waketu bisa ACC/Tolak pendaftaran mitra; Ketua/Waketu/Sekretaris/Bendahara bisa lihat read-only seluruh katalog/stok/transaksi tiap mitra
+- Toggle tampilkan/sembunyikan password di semua form (registrasi, login, lupa password)
+- Manajemen Pengguna (Superadmin): edit data akun, hapus akun uji coba, koreksi penugasan periode yang salah input
+- Surat Masuk/Keluar (BPH, input khusus Sekretaris): pencatatan, saran nomor urut otomatis, rekap per bulan, panduan format penomoran
+- Struktur Kepanitiaan Proker: tiap proker bisa punya daftar panitia (penanggung jawab, ketua pelaksana, dst) di luar dokumen
+- Timeline Proker bergaya rute — visual urutan proker berdasar tanggal, terlihat semua anggota
+- Navigasi mobile (hamburger menu) — sebelumnya menu hilang total di layar kecil
 - Middleware proteksi rute
 - Identitas visual dasar (tema warna, tipografi, komponen UI dasar) yang dipakai konsisten di seluruh halaman
 
@@ -36,6 +42,8 @@ Sistem Informasi Manajemen Himpunan Mahasiswa Informatika — Next.js + Supabase
    supabase/migrations/0004_danus_mitra.sql
    supabase/migrations/0005_rls_lockdown.sql
    supabase/migrations/0006_kas_keterangan.sql
+   supabase/migrations/0007_surat.sql
+   supabase/migrations/0008_panitia_proker.sql
    ```
 3. Buka `supabase/seed_superadmin.sql`, **ganti semua nilai placeholder** (NIM, nama, password awal, dll), lalu jalankan di SQL Editor. Ini membuat periode pertama + akun Superadmin (kamu).
 4. Ambil kredensial di **Project Settings -> API**:

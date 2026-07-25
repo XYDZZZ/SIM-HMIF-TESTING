@@ -35,9 +35,8 @@ export async function daftarProker(id_periode: string) {
   const supabase = createServerSupabaseClient();
   const { data } = await supabase
     .from("proker")
-    .select("id_proker, nama_proker, status_proker, tanggal_mulai, tanggal_selesai, id_divisi, divisi ( nama_divisi )")
+    .select("id_proker, nama_proker, status_proker, tanggal_mulai, tanggal_selesai, id_divisi, deleted_at, divisi ( nama_divisi )")
     .eq("id_periode", id_periode)
-    .is("deleted_at", null)
     .order("tanggal_mulai", { ascending: true, nullsFirst: false });
   return data ?? [];
 }
@@ -47,10 +46,9 @@ export async function detailProker(id_proker: string) {
   const { data: proker } = await supabase
     .from("proker")
     .select(
-      "id_proker, nama_proker, id_periode, id_divisi, status_proker, tanggal_mulai, tanggal_selesai, deskripsi, divisi ( nama_divisi ), periode ( status_aktif )"
+      "id_proker, nama_proker, id_periode, id_divisi, status_proker, tanggal_mulai, tanggal_selesai, deskripsi, deleted_at, lpj_ringkasan, lpj_kendala, lpj_rekomendasi, lpj_url_dokumen, lpj_diisi_pada, divisi ( nama_divisi ), periode ( status_aktif )"
     )
     .eq("id_proker", id_proker)
-    .is("deleted_at", null)
     .single();
 
   const { data: dokumen } = await supabase
@@ -129,7 +127,27 @@ export async function hapusProker(id_proker: string): Promise<HasilAksi> {
     .update({ deleted_at: new Date().toISOString() })
     .eq("id_proker", id_proker);
   if (error) return { sukses: false, pesan: "Gagal menghapus proker: " + error.message };
-  return { sukses: true, pesan: "Proker berhasil dihapus." };
+  return {
+    sukses: true,
+    pesan: "Proker ditandai dihapus. Tetap tercatat di daftar (tampilan dicoret) untuk keperluan LPJ.",
+  };
+}
+
+/** Membatalkan penghapusan -- proker aktif kembali seperti semula. */
+export async function pulihkanProker(id_proker: string): Promise<HasilAksi> {
+  const supabase = createServerSupabaseClient();
+  const { data: existing } = await supabase
+    .from("proker")
+    .select("id_divisi")
+    .eq("id_proker", id_proker)
+    .single();
+  if (!existing) return { sukses: false, pesan: "Proker tidak ditemukan." };
+
+  await pastikanBolehKelolaProker(existing.id_divisi);
+
+  const { error } = await supabase.from("proker").update({ deleted_at: null }).eq("id_proker", id_proker);
+  if (error) return { sukses: false, pesan: "Gagal memulihkan proker: " + error.message };
+  return { sukses: true, pesan: "Proker berhasil dipulihkan." };
 }
 
 export async function tambahDokumenProker(formData: FormData): Promise<HasilAksi> {
@@ -220,4 +238,44 @@ export async function hapusPanitia(id_panitia: string, id_proker: string): Promi
   const { error } = await supabase.from("panitia_proker").delete().eq("id_panitia", id_panitia);
   if (error) return { sukses: false, pesan: "Gagal menghapus panitia." };
   return { sukses: true, pesan: "Panitia berhasil dihapus." };
+}
+
+// ------------------------------------------------------------
+// LPJ (LAPORAN PERTANGGUNGJAWABAN)
+// ------------------------------------------------------------
+
+export async function simpanLPJ(formData: FormData): Promise<HasilAksi> {
+  const id_proker = formData.get("id_proker") as string;
+  const lpj_ringkasan = (formData.get("lpj_ringkasan") as string) || null;
+  const lpj_kendala = (formData.get("lpj_kendala") as string) || null;
+  const lpj_rekomendasi = (formData.get("lpj_rekomendasi") as string) || null;
+  const lpj_url_dokumen = (formData.get("lpj_url_dokumen") as string) || null;
+
+  const supabase = createServerSupabaseClient();
+  const { data: proker } = await supabase
+    .from("proker")
+    .select("id_divisi, status_proker")
+    .eq("id_proker", id_proker)
+    .single();
+  if (!proker) return { sukses: false, pesan: "Proker tidak ditemukan." };
+  if (proker.status_proker !== "Selesai") {
+    return { sukses: false, pesan: "LPJ hanya bisa diisi untuk proker berstatus Selesai." };
+  }
+
+  const konteks = await pastikanBolehKelolaProker(proker.id_divisi);
+
+  const { error } = await supabase
+    .from("proker")
+    .update({
+      lpj_ringkasan,
+      lpj_kendala,
+      lpj_rekomendasi,
+      lpj_url_dokumen,
+      lpj_diisi_oleh: konteks.id_user,
+      lpj_diisi_pada: new Date().toISOString(),
+    })
+    .eq("id_proker", id_proker);
+
+  if (error) return { sukses: false, pesan: "Gagal menyimpan LPJ: " + error.message };
+  return { sukses: true, pesan: "LPJ berhasil disimpan." };
 }

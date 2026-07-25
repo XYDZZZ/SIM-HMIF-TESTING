@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRATION 0001: ADMINISTRASI & KEANGGOTAAN
--- PANEL HMIF
+-- SIM HIMATIF
 -- ============================================================
 
 -- Ekstensi untuk UUID

@@ -20,7 +20,7 @@ export async function detailKegiatan(id_kegiatan: string) {
   const { data } = await supabase
     .from("kegiatan")
     .select(
-      "id_kegiatan, nama_kegiatan, waktu_mulai, toleransi_menit, bobot_poin, id_periode, id_proker, proker ( nama_proker, id_divisi ), periode ( status_aktif )"
+      "id_kegiatan, nama_kegiatan, waktu_mulai, toleransi_menit, bobot_poin, id_periode, id_proker, notulensi, evaluasi, proker ( nama_proker, id_divisi ), periode ( status_aktif )"
     )
     .eq("id_kegiatan", id_kegiatan)
     .is("deleted_at", null)
@@ -73,4 +73,23 @@ export async function ubahBobotPoin(id_kegiatan: string, bobot_poin: number): Pr
 
   if (error) return { sukses: false, pesan: "Gagal mengubah bobot poin." };
   return { sukses: true, pesan: "Bobot poin berhasil diperbarui." };
+}
+
+/**
+ * Simpan notulensi & evaluasi kegiatan. Boleh diisi kapan saja setelah kegiatan
+ * dibuat (tidak dibatasi harus "selesai" dulu, karena kegiatan tidak punya status
+ * eksplisit -- cukup diisi begitu rapat/acara sudah berlangsung).
+ */
+export async function simpanNotulensiEvaluasi(formData: FormData): Promise<HasilAksi> {
+  await requireRole("BPH");
+
+  const id_kegiatan = formData.get("id_kegiatan") as string;
+  const notulensi = (formData.get("notulensi") as string) || null;
+  const evaluasi = (formData.get("evaluasi") as string) || null;
+
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase.from("kegiatan").update({ notulensi, evaluasi }).eq("id_kegiatan", id_kegiatan);
+
+  if (error) return { sukses: false, pesan: "Gagal menyimpan: " + error.message };
+  return { sukses: true, pesan: "Notulensi & evaluasi berhasil disimpan." };
 }
