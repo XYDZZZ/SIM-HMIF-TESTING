@@ -35,24 +35,39 @@ export default async function HalamanDaftarProker() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {daftar.map((p) => (
-          <Link
-            key={p.id_proker}
-            href={`/dashboard/proker/${p.id_proker}`}
-            className="group rounded-xl border border-ink-700 bg-ink-900/60 p-5 transition-colors hover:border-signal-500/50"
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-display text-base text-paper-100 group-hover:text-signal-400">
-                {p.nama_proker}
-              </span>
-              <Badge warna={warnaStatus[p.status_proker] ?? "netral"}>{p.status_proker}</Badge>
-            </div>
-            <p className="text-sm text-paper-300">
-              {/* @ts-expect-error -- hasil join Supabase */}
-              {p.divisi?.nama_divisi ?? "Proker Bersama"}
-            </p>
-          </Link>
-        ))}
+        {daftar.map((p) => {
+          const dihapus = Boolean(p.deleted_at);
+          return (
+            <Link
+              key={p.id_proker}
+              href={`/dashboard/proker/${p.id_proker}`}
+              className={`group rounded-xl border p-5 transition-colors ${
+                dihapus
+                  ? "border-ink-800 bg-ink-900/30 opacity-60 hover:border-ink-700"
+                  : "border-ink-700 bg-ink-900/60 hover:border-signal-500/50"
+              }`}
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <span
+                  className={`font-display text-base ${
+                    dihapus ? "text-paper-300 line-through" : "text-paper-100 group-hover:text-signal-400"
+                  }`}
+                >
+                  {p.nama_proker}
+                </span>
+                {dihapus ? (
+                  <Badge warna="danger">Dihapus</Badge>
+                ) : (
+                  <Badge warna={warnaStatus[p.status_proker] ?? "netral"}>{p.status_proker}</Badge>
+                )}
+              </div>
+              <p className="text-sm text-paper-300">
+                {/* @ts-expect-error -- hasil join Supabase */}
+                {p.divisi?.nama_divisi ?? "Proker Bersama"}
+              </p>
+            </Link>
+          );
+        })}
 
         {daftar.length === 0 && <p className="text-sm text-paper-300">Belum ada proker di periode ini.</p>}
       </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPeriodeAktif } from "@/lib/actions/periode";
-import { daftarKasTransaksi, ringkasanKas } from "@/lib/actions/kas";
+import { daftarKasTransaksi, ringkasanKas, daftarMitraRingkas, daftarTagihanKhusus } from "@/lib/actions/kas";
 import { getKonteksPengguna } from "@/lib/auth/authorize";
 import { Badge } from "@/components/ui/Badge";
 
@@ -19,22 +19,32 @@ const warnaStatus: Record<string, "netral" | "signal" | "ok" | "danger"> = {
 export default async function HalamanKas({
   searchParams,
 }: {
-  searchParams: Promise<{ kategori?: string }>;
+  searchParams: Promise<{ kategori?: string; tagihan?: string; mitra?: string }>;
 }) {
-  const { kategori } = await searchParams;
+  const { kategori, tagihan, mitra } = await searchParams;
   const [periodeAktif, konteks, ringkasan] = await Promise.all([
     getPeriodeAktif(),
     getKonteksPengguna(),
     ringkasanKas(),
   ]);
 
+  const [daftarTagihan, daftarMitra] = await Promise.all([
+    periodeAktif ? daftarTagihanKhusus(periodeAktif.id_periode) : Promise.resolve([]),
+    daftarMitraRingkas(),
+  ]);
+
   const transaksi = await daftarKasTransaksi(
     periodeAktif?.id_periode ?? "",
-    kategori && kategori !== "Semua" ? kategori : undefined
+    kategori && kategori !== "Semua" ? kategori : undefined,
+    { id_tagihan: tagihan, id_mitra: mitra }
   );
 
   const isBendahara =
     konteks?.tipe === "anggota" && (konteks.is_superadmin || konteks.nama_jabatan === "Bendahara");
+
+  function urlKategori(k: string) {
+    return k === "Semua" ? "/dashboard/kas" : `/dashboard/kas?kategori=${encodeURIComponent(k)}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -91,7 +101,7 @@ export default async function HalamanKas({
         {kategoriTab.map((k) => (
           <Link
             key={k}
-            href={k === "Semua" ? "/dashboard/kas" : `/dashboard/kas?kategori=${encodeURIComponent(k)}`}
+            href={urlKategori(k)}
             className={`whitespace-nowrap rounded-md border px-3.5 py-1.5 font-display text-[11px] uppercase tracking-[0.08em] ${
               (kategori ?? "Semua") === k
                 ? "border-signal-500 bg-signal-500/10 text-signal-400"
@@ -102,6 +112,54 @@ export default async function HalamanKas({
           </Link>
         ))}
       </div>
+
+      {kategori === "Kas Tagihan Khusus" && daftarTagihan.length > 0 && (
+        <div className="flex flex-wrap gap-2 border-l-2 border-ink-700 pl-3">
+          <Link
+            href="/dashboard/kas?kategori=Kas+Tagihan+Khusus"
+            className={`rounded-md border px-3 py-1 text-xs ${
+              !tagihan ? "border-signal-500/50 text-signal-400" : "border-ink-600 text-paper-300"
+            }`}
+          >
+            Semua Tagihan
+          </Link>
+          {daftarTagihan.map((t) => (
+            <Link
+              key={t.id_tagihan}
+              href={`/dashboard/kas?kategori=Kas+Tagihan+Khusus&tagihan=${t.id_tagihan}`}
+              className={`rounded-md border px-3 py-1 text-xs ${
+                tagihan === t.id_tagihan ? "border-signal-500/50 text-signal-400" : "border-ink-600 text-paper-300"
+              }`}
+            >
+              {t.nama_tagihan}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {kategori === "Kas Danus" && daftarMitra.length > 0 && (
+        <div className="flex flex-wrap gap-2 border-l-2 border-ink-700 pl-3">
+          <Link
+            href="/dashboard/kas?kategori=Kas+Danus"
+            className={`rounded-md border px-3 py-1 text-xs ${
+              !mitra ? "border-signal-500/50 text-signal-400" : "border-ink-600 text-paper-300"
+            }`}
+          >
+            Semua Mitra
+          </Link>
+          {daftarMitra.map((m) => (
+            <Link
+              key={m.id_mitra}
+              href={`/dashboard/kas?kategori=Kas+Danus&mitra=${m.id_mitra}`}
+              className={`rounded-md border px-3 py-1 text-xs ${
+                mitra === m.id_mitra ? "border-signal-500/50 text-signal-400" : "border-ink-600 text-paper-300"
+              }`}
+            >
+              {m.nama_usaha}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-ink-700">
         <table className="w-full text-sm">
@@ -118,14 +176,14 @@ export default async function HalamanKas({
           <tbody>
             {transaksi.map((t) => {
               const u = t.users as unknown as { nama_lengkap: string } | null;
-              const tagihan = t.tagihan_khusus as unknown as { nama_tagihan: string } | null;
+              const tagihanObj = t.tagihan_khusus as unknown as { nama_tagihan: string } | null;
               return (
                 <tr key={t.id_transaksi} className="border-t border-ink-700">
                   <td className="px-3 py-2.5 text-paper-300">
                     {new Date(t.dibuat_pada).toLocaleDateString("id-ID", { dateStyle: "medium" })}
                   </td>
                   <td className="px-3 py-2.5 text-paper-100">{u?.nama_lengkap ?? "-"}</td>
-                  <td className="px-3 py-2.5 text-paper-300">{tagihan?.nama_tagihan ?? t.kategori}</td>
+                  <td className="px-3 py-2.5 text-paper-300">{tagihanObj?.nama_tagihan ?? t.kategori}</td>
                   <td className="px-3 py-2.5 text-paper-300">{t.jenis}</td>
                   <td className="px-3 py-2.5 text-paper-100">{formatRupiah(Number(t.nominal))}</td>
                   <td className="px-3 py-2.5">

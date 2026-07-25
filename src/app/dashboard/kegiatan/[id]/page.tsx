@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EditorBobotPoin } from "@/components/kegiatan/EditorBobotPoin";
 import { ScannerQR } from "@/components/absensi/ScannerQR";
 import { FormInputManual } from "@/components/absensi/FormInputManual";
+import { FormNotulensiEvaluasi } from "@/components/kegiatan/FormNotulensiEvaluasi";
 
 const warnaStatusKehadiran: Record<string, "netral" | "signal" | "ok" | "danger"> = {
   "Tepat Waktu": "ok",
@@ -34,6 +35,9 @@ export default async function HalamanDetailKegiatan({ params }: { params: Promis
     (konteks.is_superadmin ||
       konteks.nama_jabatan === "Sekretaris" ||
       (konteks.nama_role === "Kadiv" && prokerObj?.id_divisi && konteks.id_divisi === prokerObj.id_divisi));
+
+  const bolehIsiNotulensi =
+    konteks?.tipe === "anggota" && (konteks.is_superadmin || konteks.nama_role === "BPH");
 
   return (
     <div className="space-y-8">
@@ -128,6 +132,30 @@ export default async function HalamanDetailKegiatan({ params }: { params: Promis
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-ink-700 bg-ink-900/60 p-7">
+        <h2 className="mb-4 font-display text-[12px] uppercase tracking-[0.14em] text-paper-300">
+          Notulensi & Evaluasi
+        </h2>
+        {bolehIsiNotulensi ? (
+          <FormNotulensiEvaluasi
+            id_kegiatan={id}
+            notulensiAwal={kegiatan.notulensi}
+            evaluasiAwal={kegiatan.evaluasi}
+          />
+        ) : (
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="text-paper-300">Notulensi</p>
+              <p className="text-paper-100">{kegiatan.notulensi || "Belum diisi."}</p>
+            </div>
+            <div>
+              <p className="text-paper-300">Evaluasi</p>
+              <p className="text-paper-100">{kegiatan.evaluasi || "Belum diisi."}</p>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getKonteksPengguna } from "@/lib/auth/authorize";
-import { daftarKasManual } from "@/lib/actions/kas";
+import { getPeriodeAktif } from "@/lib/actions/periode";
+import { daftarKasManual, daftarAnggotaUntukPembayaran, daftarTagihanKhusus } from "@/lib/actions/kas";
 import { Badge } from "@/components/ui/Badge";
 import { FormEditTransaksiManual } from "@/components/kas/FormEditTransaksiManual";
 import { TombolHapusTransaksiManual } from "@/components/kas/TombolHapusTransaksiManual";
+import { FormTunaiBendahara } from "@/components/kas/FormTunaiBendahara";
 
 function formatRupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -17,7 +19,17 @@ export default async function HalamanKelolaTransaksiManual() {
     return <p className="text-sm text-paper-300">Halaman ini khusus Bendahara.</p>;
   }
 
-  const daftar = await daftarKasManual();
+  const periodeAktif = await getPeriodeAktif();
+  const [daftar, anggota, tagihan] = await Promise.all([
+    daftarKasManual(),
+    periodeAktif ? daftarAnggotaUntukPembayaran(periodeAktif.id_periode) : Promise.resolve([]),
+    periodeAktif ? daftarTagihanKhusus(periodeAktif.id_periode) : Promise.resolve([]),
+  ]);
+
+  const daftarAnggotaRapi = anggota.map((a) => {
+    const u = a.users as unknown as { nim: string; nama_lengkap: string };
+    return { id_user: a.id_user, nim: u.nim, nama_lengkap: u.nama_lengkap };
+  });
 
   return (
     <div className="space-y-6">
@@ -27,10 +39,13 @@ export default async function HalamanKelolaTransaksiManual() {
       <div>
         <h1 className="font-display text-2xl text-paper-100">Kelola Transaksi Manual</h1>
         <p className="mt-1 text-sm text-paper-300">
-          Edit atau hapus entri yang kamu input langsung (tunai & pengeluaran). Transaksi otomatis dari
-          Danus tidak muncul di sini — itu dikelola lewat pembatalan transaksi di Portal Mitra.
+          Catat pembayaran tunai, atau edit/hapus entri yang kamu input langsung (tunai & pengeluaran).
+          Transaksi otomatis dari Danus tidak muncul di sini — itu dikelola lewat pembatalan transaksi di
+          Portal Mitra.
         </p>
       </div>
+
+      <FormTunaiBendahara daftarAnggota={daftarAnggotaRapi} daftarTagihan={tagihan} />
 
       <div className="overflow-x-auto rounded-lg border border-ink-700">
         <table className="w-full text-sm">
@@ -61,6 +76,7 @@ export default async function HalamanKelolaTransaksiManual() {
                       id_transaksi={t.id_transaksi}
                       nominalAwal={Number(t.nominal)}
                       keteranganAwal={t.keterangan}
+                      daftarAnggota={daftarAnggotaRapi}
                     />
                     <p className="mt-0.5 text-xs text-paper-300">
                       {formatRupiah(Number(t.nominal))} {t.keterangan && `· ${t.keterangan}`}

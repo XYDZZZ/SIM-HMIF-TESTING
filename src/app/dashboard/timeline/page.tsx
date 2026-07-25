@@ -12,10 +12,13 @@ export default async function HalamanTimeline({
   const periodeAktif = await getPeriodeAktif();
   if (!periodeAktif) return <p className="text-sm text-paper-300">Belum ada periode aktif.</p>;
 
-  const [proker, kegiatan] = await Promise.all([
+  const [prokerMentah, kegiatan] = await Promise.all([
     daftarProker(periodeAktif.id_periode),
     daftarKegiatan(periodeAktif.id_periode),
   ]);
+
+  // Proker yang sudah dihapus tidak ditampilkan di timeline (tetap ada di daftar Proker biasa untuk LPJ)
+  const proker = prokerMentah.filter((p) => !p.deleted_at);
 
   const prokerBersama = proker.filter((p) => !(p.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi);
   const namaDivisiUnik = Array.from(
@@ -26,43 +29,31 @@ export default async function HalamanTimeline({
     )
   );
 
-  const tabAktif = tab ?? "bersama";
+  const tabAktif = tab ?? "semua";
 
   const daftarTab = [
+    { key: "semua", label: "Semua" },
     { key: "bersama", label: "Proker Bersama" },
     ...namaDivisiUnik.map((d) => ({ key: `divisi:${d}`, label: d })),
     { key: "kegiatan", label: "Kegiatan" },
   ];
 
-  let items: ItemTimeline[] = [];
+  const itemProkerBersama: ItemTimeline[] = prokerBersama.map((p) => ({
+    id: p.id_proker,
+    judul: p.nama_proker,
+    subjudul: "Proker Bersama",
+    status: p.status_proker,
+    tanggal_mulai: p.tanggal_mulai,
+    tanggal_selesai: p.tanggal_selesai,
+    href: `/dashboard/proker/${p.id_proker}`,
+    tipe: "bersama",
+  }));
 
-  if (tabAktif === "kegiatan") {
-    items = kegiatan.map((k) => {
-      const p = k.proker as unknown as { nama_proker: string } | null;
+  const itemProkerDivisi: ItemTimeline[] = proker
+    .filter((p) => (p.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi)
+    .map((p) => {
+      const namaDivisi = (p.divisi as unknown as { nama_divisi: string }).nama_divisi;
       return {
-        id: k.id_kegiatan,
-        judul: k.nama_kegiatan,
-        subjudul: p?.nama_proker ? `Terkait: ${p.nama_proker}` : "Rapat umum",
-        status: "Berjalan",
-        tanggal_mulai: new Date(k.waktu_mulai).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
-        href: `/dashboard/kegiatan/${k.id_kegiatan}`,
-      };
-    });
-  } else if (tabAktif === "bersama") {
-    items = prokerBersama.map((p) => ({
-      id: p.id_proker,
-      judul: p.nama_proker,
-      subjudul: "Proker Bersama",
-      status: p.status_proker,
-      tanggal_mulai: p.tanggal_mulai,
-      tanggal_selesai: p.tanggal_selesai,
-      href: `/dashboard/proker/${p.id_proker}`,
-    }));
-  } else if (tabAktif.startsWith("divisi:")) {
-    const namaDivisi = tabAktif.replace("divisi:", "");
-    items = proker
-      .filter((p) => (p.divisi as unknown as { nama_divisi: string } | null)?.nama_divisi === namaDivisi)
-      .map((p) => ({
         id: p.id_proker,
         judul: p.nama_proker,
         subjudul: namaDivisi,
@@ -70,14 +61,46 @@ export default async function HalamanTimeline({
         tanggal_mulai: p.tanggal_mulai,
         tanggal_selesai: p.tanggal_selesai,
         href: `/dashboard/proker/${p.id_proker}`,
-      }));
+        tipe: "divisi" as const,
+      };
+    });
+
+  const itemKegiatan: ItemTimeline[] = kegiatan.map((k) => {
+    const p = k.proker as unknown as { nama_proker: string } | null;
+    return {
+      id: k.id_kegiatan,
+      judul: k.nama_kegiatan,
+      subjudul: p?.nama_proker ? `Menuju: ${p.nama_proker}` : "Rapat umum",
+      status: "Berjalan",
+      tanggal_mulai: new Date(k.waktu_mulai).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
+      href: `/dashboard/kegiatan/${k.id_kegiatan}`,
+      tipe: "kegiatan" as const,
+    };
+  });
+
+  let items: ItemTimeline[] = [];
+  let tampilkanLegenda = false;
+
+  if (tabAktif === "semua") {
+    items = [...itemProkerBersama, ...itemProkerDivisi, ...itemKegiatan];
+    tampilkanLegenda = true;
+  } else if (tabAktif === "kegiatan") {
+    items = itemKegiatan.map((i) => ({ ...i, tipe: undefined }));
+  } else if (tabAktif === "bersama") {
+    items = itemProkerBersama.map((i) => ({ ...i, tipe: undefined }));
+  } else if (tabAktif.startsWith("divisi:")) {
+    const namaDivisi = tabAktif.replace("divisi:", "");
+    items = itemProkerDivisi.filter((i) => i.subjudul === namaDivisi).map((i) => ({ ...i, tipe: undefined }));
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl text-paper-100">Timeline</h1>
-        <p className="mt-1 text-sm text-paper-300">Periode {periodeAktif.nama_periode}</p>
+        <p className="mt-1 text-sm text-paper-300">
+          Periode {periodeAktif.nama_periode}
+          {tabAktif === "semua" && " — Proker Bersama (terminal), Proker Divisi (halte), Kegiatan (titik menuju proker)"}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -96,7 +119,7 @@ export default async function HalamanTimeline({
         ))}
       </div>
 
-      <TimelineVisual items={items} />
+      <TimelineVisual items={items} tampilkanLegenda={tampilkanLegenda} />
     </div>
   );
 }
