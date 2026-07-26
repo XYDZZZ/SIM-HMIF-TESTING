@@ -4,6 +4,8 @@ import { getPeriodeAktif } from "@/lib/actions/periode";
 import { daftarSurat, rekapPerBulan } from "@/lib/actions/surat";
 import { KODE_JENIS_SURAT } from "@/lib/constants/surat";
 import { FormCatatSurat } from "@/components/surat/FormCatatSurat";
+import { FormEditSurat } from "@/components/surat/FormEditSurat";
+import { TombolHapusSurat } from "@/components/surat/TombolHapusSurat";
 import { Badge } from "@/components/ui/Badge";
 
 export default async function HalamanSurat({
@@ -127,6 +129,7 @@ export default async function HalamanSurat({
                 <th className="px-3 py-2.5">Dari/Kepada</th>
                 <th className="px-3 py-2.5">Kategori</th>
                 <th className="px-3 py-2.5">Jenis</th>
+                {bolehCatat && <th className="px-3 py-2.5"></th>}
               </tr>
             </thead>
             <tbody>
@@ -150,11 +153,26 @@ export default async function HalamanSurat({
                   <td className="px-3 py-2.5">
                     <Badge warna={s.jenis === "Masuk" ? "signal" : "ok"}>{s.jenis}</Badge>
                   </td>
+                  {bolehCatat && (
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-3">
+                        <FormEditSurat
+                          id_surat={s.id_surat}
+                          nomorAwal={s.nomor_surat}
+                          perihalAwal={s.perihal}
+                          tanggalAwal={s.tanggal_surat}
+                          asalTujuanAwal={s.asal_tujuan}
+                          urlDokumenAwal={s.url_dokumen}
+                        />
+                        <TombolHapusSurat id_surat={s.id_surat} />
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
               {surat.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-paper-300">
+                  <td colSpan={bolehCatat ? 7 : 6} className="px-3 py-6 text-center text-paper-300">
                     Belum ada surat tercatat.
                   </td>
                 </tr>

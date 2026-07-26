@@ -70,7 +70,7 @@ export default async function HalamanTimeline({
     return {
       id: k.id_kegiatan,
       judul: k.nama_kegiatan,
-      subjudul: p?.nama_proker ? `Menuju: ${p.nama_proker}` : "Rapat umum",
+      subjudul: p?.nama_proker ? `Terkait proker: ${p.nama_proker}` : "Rapat umum",
       status: "Berjalan",
       tanggal_mulai: new Date(k.waktu_mulai).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
       href: `/dashboard/kegiatan/${k.id_kegiatan}`,
@@ -99,7 +99,7 @@ export default async function HalamanTimeline({
         <h1 className="font-display text-2xl text-paper-100">Timeline</h1>
         <p className="mt-1 text-sm text-paper-300">
           Periode {periodeAktif.nama_periode}
-          {tabAktif === "semua" && " — Proker Bersama (terminal), Proker Divisi (halte), Kegiatan (titik menuju proker)"}
+          {tabAktif === "semua" && " — semua proker & kegiatan digabung, dibedakan ukuran dan warna titik"}
         </p>
       </div>
 

@@ -36,13 +36,13 @@ export default async function HalamanDaftarProker() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {daftar.map((p) => {
-          const dihapus = Boolean(p.deleted_at);
+          const dibatalkan = p.status_proker === "Dibatalkan";
           return (
             <Link
               key={p.id_proker}
               href={`/dashboard/proker/${p.id_proker}`}
               className={`group rounded-xl border p-5 transition-colors ${
-                dihapus
+                dibatalkan
                   ? "border-ink-800 bg-ink-900/30 opacity-60 hover:border-ink-700"
                   : "border-ink-700 bg-ink-900/60 hover:border-signal-500/50"
               }`}
@@ -50,16 +50,12 @@ export default async function HalamanDaftarProker() {
               <div className="mb-2 flex items-center justify-between">
                 <span
                   className={`font-display text-base ${
-                    dihapus ? "text-paper-300 line-through" : "text-paper-100 group-hover:text-signal-400"
+                    dibatalkan ? "text-paper-300 line-through" : "text-paper-100 group-hover:text-signal-400"
                   }`}
                 >
                   {p.nama_proker}
                 </span>
-                {dihapus ? (
-                  <Badge warna="danger">Dihapus</Badge>
-                ) : (
-                  <Badge warna={warnaStatus[p.status_proker] ?? "netral"}>{p.status_proker}</Badge>
-                )}
+                <Badge warna={warnaStatus[p.status_proker] ?? "netral"}>{p.status_proker}</Badge>
               </div>
               <p className="text-sm text-paper-300">
                 {/* @ts-expect-error -- hasil join Supabase */}

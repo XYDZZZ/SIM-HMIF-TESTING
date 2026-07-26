@@ -142,3 +142,36 @@ export async function catatSurat(formData: FormData): Promise<HasilAksi> {
   if (error) return { sukses: false, pesan: "Gagal mencatat surat: " + error.message };
   return { sukses: true, pesan: "Surat berhasil dicatat." };
 }
+
+export async function updateSurat(formData: FormData): Promise<HasilAksi> {
+  await requireJabatan("Sekretaris");
+
+  const id_surat = formData.get("id_surat") as string;
+  const nomor_surat = formData.get("nomor_surat") as string;
+  const perihal = formData.get("perihal") as string;
+  const tanggal_surat = formData.get("tanggal_surat") as string;
+  const asal_tujuan = (formData.get("asal_tujuan") as string) || null;
+  const url_dokumen = (formData.get("url_dokumen") as string) || null;
+
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase
+    .from("surat")
+    .update({ nomor_surat, perihal, tanggal_surat, asal_tujuan, url_dokumen })
+    .eq("id_surat", id_surat);
+
+  if (error) return { sukses: false, pesan: "Gagal memperbarui surat: " + error.message };
+  return { sukses: true, pesan: "Surat berhasil diperbarui." };
+}
+
+export async function hapusSurat(id_surat: string): Promise<HasilAksi> {
+  await requireJabatan("Sekretaris");
+
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase
+    .from("surat")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id_surat", id_surat);
+
+  if (error) return { sukses: false, pesan: "Gagal menghapus surat: " + error.message };
+  return { sukses: true, pesan: "Surat berhasil dihapus." };
+}

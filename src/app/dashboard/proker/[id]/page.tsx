@@ -5,10 +5,7 @@ import { SelectorStatusProker } from "@/components/proker/SelectorStatusProker";
 import { FormTambahDokumen } from "@/components/proker/FormTambahDokumen";
 import { FormTambahPanitia } from "@/components/proker/FormTambahPanitia";
 import { TombolHapusPanitia } from "@/components/proker/TombolHapusPanitia";
-import { TombolHapusProker } from "@/components/proker/TombolHapusProker";
-import { TombolPulihkanProker } from "@/components/proker/TombolPulihkanProker";
 import { FormLPJ } from "@/components/proker/FormLPJ";
-import { Badge } from "@/components/ui/Badge";
 
 export default async function HalamanDetailProker({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,7 +14,7 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
 
   const divisiObj = proker.divisi as unknown as { nama_divisi: string } | null;
   const periodeObj = proker.periode as unknown as { status_aktif: boolean } | null;
-  const dihapus = Boolean(proker.deleted_at);
+  const dibatalkan = proker.status_proker === "Dibatalkan";
 
   const [panitia, calonPanitia] = await Promise.all([
     daftarPanitia(id),
@@ -30,32 +27,18 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
         &larr; Program Kerja
       </Link>
 
-      {dihapus && (
-        <div className="flex items-center justify-between rounded-lg border border-danger-500/40 bg-danger-500/10 px-5 py-3">
-          <p className="text-sm text-danger-500">
-            Proker ini sudah dihapus — tetap tersimpan sebagai riwayat untuk keperluan LPJ.
-          </p>
-          {periodeObj?.status_aktif && <TombolPulihkanProker id_proker={proker.id_proker} />}
-        </div>
-      )}
-
       <div className="rounded-xl border border-ink-700 bg-ink-900/60 p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className={`font-display text-2xl ${dihapus ? "text-paper-300 line-through" : "text-paper-100"}`}>
+            <h1 className={`font-display text-2xl ${dibatalkan ? "text-paper-300 line-through" : "text-paper-100"}`}>
               {proker.nama_proker}
             </h1>
             <p className="mt-1 text-sm text-paper-300">{divisiObj?.nama_divisi ?? "Proker Bersama"}</p>
           </div>
-          {periodeObj?.status_aktif && !dihapus ? (
-            <div className="flex items-center gap-3">
-              <SelectorStatusProker id_proker={proker.id_proker} statusSaatIni={proker.status_proker} />
-              <TombolHapusProker id_proker={proker.id_proker} />
-            </div>
-          ) : !dihapus ? (
-            <span className="text-xs text-paper-300">Periode terkunci — status tidak bisa diubah</span>
+          {periodeObj?.status_aktif ? (
+            <SelectorStatusProker id_proker={proker.id_proker} statusSaatIni={proker.status_proker} />
           ) : (
-            <Badge warna="danger">Dihapus</Badge>
+            <span className="text-xs text-paper-300">Periode terkunci — status tidak bisa diubah</span>
           )}
         </div>
 
@@ -86,7 +69,7 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
                   <span className="text-paper-100">{u?.nama_lengkap}</span>
                   <span className="ml-2 text-paper-300">{p.peran}</span>
                 </div>
-                {periodeObj?.status_aktif && !dihapus && (
+                {periodeObj?.status_aktif && !dibatalkan && (
                   <TombolHapusPanitia id_panitia={p.id_panitia} id_proker={id} />
                 )}
               </div>
@@ -95,7 +78,7 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
           {panitia.length === 0 && <p className="text-sm text-paper-300">Belum ada panitia ditetapkan.</p>}
         </div>
 
-        {periodeObj?.status_aktif && !dihapus && (
+        {periodeObj?.status_aktif && !dibatalkan && (
           <div className="mt-3">
             <FormTambahPanitia
               id_proker={id}
@@ -113,7 +96,7 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
           <h2 className="font-display text-[12px] uppercase tracking-[0.14em] text-paper-300">
             Dokumen ({dokumen.length})
           </h2>
-          {periodeObj?.status_aktif && !dihapus && <FormTambahDokumen id_proker={proker.id_proker} />}
+          {periodeObj?.status_aktif && !dibatalkan && <FormTambahDokumen id_proker={proker.id_proker} />}
         </div>
 
         <div className="space-y-2">
@@ -135,7 +118,7 @@ export default async function HalamanDetailProker({ params }: { params: Promise<
         </div>
       </section>
 
-      {proker.status_proker === "Selesai" && !dihapus && (
+      {proker.status_proker === "Selesai" && !dibatalkan && (
         <section className="rounded-xl border border-signal-500/30 bg-ink-900/60 p-7">
           <h2 className="mb-4 font-display text-[12px] uppercase tracking-[0.14em] text-signal-400">
             LPJ (Laporan Pertanggungjawaban)

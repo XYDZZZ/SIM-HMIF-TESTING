@@ -31,18 +31,26 @@ const warnaTeksMap: Record<string, string> = {
 };
 
 const labelTipe: Record<TipeItemTimeline, string> = {
-  bersama: "Terminal · Proker Bersama",
-  divisi: "Halte · Proker Divisi",
-  kegiatan: "Titik · Kegiatan",
+  bersama: "Proker Bersama",
+  divisi: "Proker Divisi",
+  kegiatan: "Kegiatan",
 };
 
-// Ukuran titik beda per tipe: terminal (proker bersama) paling besar, halte (proker divisi)
-// medium, titik (kegiatan) paling kecil -- analoginya proker bersama = terminal utama,
-// proker divisi = halte pemberhentian, kegiatan = titik singgah menuju proker itu.
+// Ukuran titik beda per tipe: proker bersama paling besar, proker divisi medium,
+// kegiatan paling kecil.
 const ukuranTitik: Record<TipeItemTimeline, string> = {
   bersama: "h-5 w-5",
   divisi: "h-4 w-4",
   kegiatan: "h-2.5 w-2.5",
+};
+
+// Warna per tipe -- dipakai khusus di tab "Semua" supaya proker bersama/divisi/kegiatan
+// gampang dibedakan sekilas tanpa baca teks. Di tab lain (satu tipe saja), warna tetap
+// mengikuti status seperti biasa.
+const warnaTipeMap: Record<TipeItemTimeline, string> = {
+  bersama: "bg-signal-500 border-signal-500",
+  divisi: "bg-ok-500 border-ok-500",
+  kegiatan: "bg-paper-300 border-paper-300",
 };
 
 function warnaTitik(status: string) {
@@ -115,13 +123,13 @@ export function TimelineVisual({ items, tampilkanLegenda }: { items: ItemTimelin
         {tampilkanLegenda && (
           <div className="flex flex-wrap items-center gap-4 text-[11px] text-paper-300">
             <span className="flex items-center gap-1.5">
-              <span className="h-5 w-5 rounded-full border-2 border-paper-300" /> Terminal (Bersama)
+              <span className="h-5 w-5 rounded-full border-2 border-paper-300" /> Proker Bersama (titik besar)
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-4 w-4 rounded-full border-2 border-paper-300" /> Halte (Divisi)
+              <span className="h-4 w-4 rounded-full border-2 border-paper-300" /> Proker Divisi (titik sedang)
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border-2 border-paper-300" /> Titik (Kegiatan)
+              <span className="h-2.5 w-2.5 rounded-full border-2 border-paper-300" /> Kegiatan (titik kecil)
             </span>
           </div>
         )}
@@ -136,7 +144,7 @@ export function TimelineVisual({ items, tampilkanLegenda }: { items: ItemTimelin
               return (
                 <div key={item.id} className="relative">
                   <span
-                    className={`absolute -left-8 top-2.5 rounded-full border-2 ${ukuran} ${warnaTitik(item.status)}`}
+                    className={`absolute -left-8 top-2.5 rounded-full border-2 ${ukuran} ${item.tipe ? warnaTipeMap[item.tipe] : warnaTitik(item.status)}`}
                     style={{ transform: "translateY(-50%)" }}
                   />
                   <button
@@ -193,7 +201,7 @@ export function TimelineVisual({ items, tampilkanLegenda }: { items: ItemTimelin
                     className="relative flex w-36 flex-col items-center text-center"
                   >
                     <span
-                      className={`z-10 rounded-full border-2 ${ukuran} ${warnaTitik(item.status)} ${
+                      className={`z-10 rounded-full border-2 ${ukuran} ${item.tipe ? warnaTipeMap[item.tipe] : warnaTitik(item.status)} ${
                         terpilih === item.id ? "ring-2 ring-signal-400 ring-offset-2 ring-offset-ink-950" : ""
                       }`}
                     />

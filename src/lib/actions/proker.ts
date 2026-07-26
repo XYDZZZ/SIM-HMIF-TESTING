@@ -111,45 +111,6 @@ export async function updateStatusProker(id_proker: string, status_proker: strin
  * Guard sama seperti aksi kelola proker lain: Kadiv untuk divisinya sendiri, BPH untuk
  * proker bersama, Superadmin untuk semua.
  */
-export async function hapusProker(id_proker: string): Promise<HasilAksi> {
-  const supabase = createServerSupabaseClient();
-  const { data: existing } = await supabase
-    .from("proker")
-    .select("id_divisi")
-    .eq("id_proker", id_proker)
-    .single();
-  if (!existing) return { sukses: false, pesan: "Proker tidak ditemukan." };
-
-  await pastikanBolehKelolaProker(existing.id_divisi);
-
-  const { error } = await supabase
-    .from("proker")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id_proker", id_proker);
-  if (error) return { sukses: false, pesan: "Gagal menghapus proker: " + error.message };
-  return {
-    sukses: true,
-    pesan: "Proker ditandai dihapus. Tetap tercatat di daftar (tampilan dicoret) untuk keperluan LPJ.",
-  };
-}
-
-/** Membatalkan penghapusan -- proker aktif kembali seperti semula. */
-export async function pulihkanProker(id_proker: string): Promise<HasilAksi> {
-  const supabase = createServerSupabaseClient();
-  const { data: existing } = await supabase
-    .from("proker")
-    .select("id_divisi")
-    .eq("id_proker", id_proker)
-    .single();
-  if (!existing) return { sukses: false, pesan: "Proker tidak ditemukan." };
-
-  await pastikanBolehKelolaProker(existing.id_divisi);
-
-  const { error } = await supabase.from("proker").update({ deleted_at: null }).eq("id_proker", id_proker);
-  if (error) return { sukses: false, pesan: "Gagal memulihkan proker: " + error.message };
-  return { sukses: true, pesan: "Proker berhasil dipulihkan." };
-}
-
 export async function tambahDokumenProker(formData: FormData): Promise<HasilAksi> {
   const id_proker = formData.get("id_proker") as string;
   const nama_dokumen = formData.get("nama_dokumen") as string;
