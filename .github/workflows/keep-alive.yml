@@ -1,0 +1,16 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Tiap Senin & Kamis jam 03:00 UTC (~10:00 WIB) -- jauh di bawah ambang batas
+    # 7 hari idle-nya Supabase free tier, jadi project tidak pernah sempat di-pause.
+    - cron: "0 3 * * 1,4"
+  workflow_dispatch: {} # supaya bisa dipicu manual dari tab Actions kapan saja untuk tes
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping endpoint keep-alive
+        run: |
+          curl -sf https://sim-hmif-testing.vercel.app/api/keep-alive || echo "Ping gagal, cek manual"
