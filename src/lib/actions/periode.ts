@@ -151,7 +151,7 @@ export async function detailAnggotaPeriode(id_anggota_periode: string) {
     await Promise.all([
       supabase
         .from("users")
-        .select("nim, nama_lengkap, angkatan, tahun_masuk_organisasi, nomor_whatsapp")
+        .select("nim, nama_lengkap, angkatan, tahun_masuk_organisasi, nomor_whatsapp, kode_kartu")
         .eq("id_user", baris.id_user)
         .single(),
       supabase.from("periode").select("nama_periode").eq("id_periode", baris.id_periode).single(),

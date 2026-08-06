@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { detailAnggotaPeriode } from "@/lib/actions/periode";
+import { getKonteksPengguna } from "@/lib/auth/authorize";
 
 export default async function HalamanProfilAnggota({
   params,
@@ -8,7 +9,7 @@ export default async function HalamanProfilAnggota({
   params: Promise<{ id: string; id_anggota_periode: string }>;
 }) {
   const { id, id_anggota_periode } = await params;
-  const hasil = await detailAnggotaPeriode(id_anggota_periode);
+  const [hasil, konteks] = await Promise.all([detailAnggotaPeriode(id_anggota_periode), getKonteksPengguna()]);
 
   if (!hasil) notFound();
   const { anggota, total_poin } = hasil;
@@ -25,6 +26,9 @@ export default async function HalamanProfilAnggota({
   const namaDivisi = data.divisi?.nama_divisi;
   const namaPeriode = data.periode?.nama_periode;
 
+  const bolehKelolaKartu =
+    konteks?.tipe === "anggota" && (konteks.is_superadmin || konteks.nama_jabatan === "Sekretaris");
+
   return (
     <div className="space-y-6">
       <Link href={`/dashboard/periode/${id}`} className="text-sm text-signal-400 hover:underline">
@@ -32,10 +36,22 @@ export default async function HalamanProfilAnggota({
       </Link>
 
       <div className="rounded-xl border border-ink-700 bg-ink-900/60 p-7">
-        <h1 className="font-display text-2xl text-paper-100">{user?.nama_lengkap}</h1>
-        <p className="mt-1 text-sm text-paper-300">
-          {namaJabatan ?? namaDivisi ?? namaRole} &middot; {namaPeriode}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl text-paper-100">{user?.nama_lengkap}</h1>
+            <p className="mt-1 text-sm text-paper-300">
+              {namaJabatan ?? namaDivisi ?? namaRole} &middot; {namaPeriode}
+            </p>
+          </div>
+          {bolehKelolaKartu && (
+            <Link
+              href={`/dashboard/periode/${id}/anggota/${id_anggota_periode}/kartu`}
+              className="rounded-md border border-ink-600 px-4 py-2 font-display text-[12px] uppercase tracking-[0.08em] text-paper-100 hover:border-signal-500"
+            >
+              ID Card / QR
+            </Link>
+          )}
+        </div>
 
         <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3">
           <InfoField label="NIM" value={user?.nim} />
