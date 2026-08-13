@@ -71,9 +71,19 @@ export default async function HalamanDetailPeriode({
         <Link href="/dashboard/periode" className="text-sm text-signal-400 hover:underline">
           &larr; Semua Periode
         </Link>
-        <div className="mt-2 flex items-center gap-3">
-          <h1 className="font-display text-2xl text-paper-100">{periode.nama_periode}</h1>
-          {periode.status_aktif ? <Badge warna="ok">Aktif</Badge> : <Badge warna="netral">Terkunci</Badge>}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-2xl text-paper-100">{periode.nama_periode}</h1>
+            {periode.status_aktif ? <Badge warna="ok">Aktif</Badge> : <Badge warna="netral">Terkunci</Badge>}
+          </div>
+          {konteks?.tipe === "anggota" && (konteks.is_superadmin || konteks.nama_role === "BPH") && (
+            <Link
+              href={`/dashboard/periode/${id}/laporan`}
+              className="rounded-md border border-ink-600 px-4 py-2 font-display text-[12px] uppercase tracking-[0.08em] text-paper-100 hover:border-signal-500"
+            >
+              Laporan Periode
+            </Link>
+          )}
         </div>
       </div>
 
